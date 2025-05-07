@@ -1,23 +1,35 @@
 <script>
-    import CodeMirror from "svelte-codemirror-editor";
-    import { sql } from "@codemirror/lang-sql";
+    import Monaco from "svelte-monaco";
 
     export let query = "";
+
+    // Monaco editor options
+    const options = {
+        language: "sql",
+        theme: "vs",
+        automaticLayout: true,
+        minimap: {
+            enabled: false,
+        },
+        scrollBeyondLastLine: false,
+        lineNumbers: "on",
+        wordWrap: "on",
+        folding: true,
+        fontSize: 12,
+    };
+
+    // Handle editor value changes
+    function handleEditorChange(event) {
+        query = event.detail;
+    }
 </script>
 
 <div id="sqleditor">
-    <CodeMirror
-        lang={sql()}
-        bind:value={query}
-        styles={{
-            "&": {
-                height: "auto",
-                "max-height": "400px",
-            },
-            ".cm-scroller": {
-                overflow: "auto",
-            },
-        }}
+    <Monaco
+        value={query}
+        on:change={handleEditorChange}
+        {options}
+        height="100%"
     />
 </div>
 
@@ -28,5 +40,10 @@
         border-style: solid;
         border-color: black;
         flex: 2;
+        height: auto;
+        min-height: 100px;
+        max-height: 50vh;
+        overflow: auto;
+        resize: vertical;
     }
 </style>

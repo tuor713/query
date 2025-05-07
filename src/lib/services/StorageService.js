@@ -31,6 +31,20 @@ export class StorageService {
     }
 
     /**
+     * Save the selected environment to local storage
+     */
+    saveEnvironment(environment) {
+        localStorage.setItem("environment", environment);
+    }
+
+    /**
+     * Get the selected environment from local storage
+     */
+    getEnvironment() {
+        return localStorage.getItem("environment") || null;
+    }
+
+    /**
      * Save the collection of saved queries
      */
     saveSavedQueries(queries) {

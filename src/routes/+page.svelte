@@ -6,6 +6,9 @@
         QueryService,
         StorageService,
 
+        // Config
+        getDefaultEnvironment,
+
         // Components
         LoginComponent,
         SavedQueriesSidebar,
@@ -24,6 +27,9 @@
     let password = $state("");
     let loggedIn = $state(false);
     let savedQueries = $state(storageService.getSavedQueries());
+    let selectedEnvironment = $state(
+        storageService.getEnvironment() || getDefaultEnvironment(),
+    );
 
     // Initialize query from URL or local storage
     const urlParams = new URLSearchParams(window.location.search);
@@ -90,6 +96,11 @@
         perspectiveConfig = { columns: [], plugin: "datagrid" };
     }
 
+    function handleEnvironmentChange(newEnvironment) {
+        selectedEnvironment = newEnvironment;
+        storageService.saveEnvironment(selectedEnvironment);
+    }
+
     async function execute() {
         storageService.saveQuery(query);
 
@@ -107,6 +118,7 @@
             limit,
             username,
             password,
+            selectedEnvironment,
         );
 
         executing = false;
@@ -139,11 +151,13 @@
             <QueryControls
                 bind:queryName
                 bind:limit
+                bind:selectedEnvironment
                 {executing}
                 {lastQueryTime}
                 onSave={saveQuery}
                 onReset={resetQuery}
                 onExecute={execute}
+                onEnvironmentChange={handleEnvironmentChange}
             />
 
             <ErrorDisplay {error} />
@@ -164,7 +178,7 @@
         flex-direction: column;
         flex-grow: 1;
         height: 95vh;
-        margin-top: 2em;
+        margin-top: 1em;
         margin-left: 2em;
         margin-right: 2em;
     }

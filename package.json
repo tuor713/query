@@ -26,6 +26,8 @@
 		"@finos/perspective-viewer": "^3.5.1",
 		"@finos/perspective-viewer-d3fc": "^3.5.1",
 		"@finos/perspective-viewer-datagrid": "^3.5.1",
-		"svelte-codemirror-editor": "^1.4.1"
+		"monaco-editor": "^0.52.2",
+		"svelte-codemirror-editor": "^1.4.1",
+		"svelte-monaco": "^1.0.4"
 	}
 }

@@ -9,7 +9,7 @@ export class QueryService {
     /**
      * Execute a query with optional user credentials
      */
-    async executeQuery(query, limit, username, password) {
+    async executeQuery(query, limit, username, password, environment = 'local') {
         // Check if query is a special command that should not have LIMIT applied
         const trimmedQuery = query.trim().toUpperCase();
         const isShowCommand = trimmedQuery.startsWith('SHOW ');
@@ -29,6 +29,7 @@ export class QueryService {
                 query: finalQuery,
                 user: username,
                 password: password,
+                environment: environment,
             }),
         });
 
