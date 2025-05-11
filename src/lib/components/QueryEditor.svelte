@@ -17,20 +17,10 @@
         folding: true,
         fontSize: 12,
     };
-
-    // Handle editor value changes
-    function handleEditorChange(event) {
-        query = event.detail;
-    }
 </script>
 
 <div id="sqleditor">
-    <Monaco
-        value={query}
-        on:change={handleEditorChange}
-        {options}
-        height="100%"
-    />
+    <Monaco bind:value={query} {options} height="100%" />
 </div>
 
 <style>
