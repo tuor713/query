@@ -29,7 +29,8 @@
 
         const table = await worker.table(arrow);
         viewer = document.getElementById("result");
-        viewer.load(table);
+        // needs to be await otherwise restorting configuration will fail
+        await viewer.load(table);
 
         if (perspectiveConfig) {
             await viewer.restore(perspectiveConfig);
