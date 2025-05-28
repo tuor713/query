@@ -16,6 +16,7 @@
         QueryControls,
         ErrorDisplay,
         ResultViewer,
+        TabContainer,
     } from "$lib";
 
     // Services
@@ -35,16 +36,27 @@
     const urlParams = new URLSearchParams(window.location.search);
     const queryParam = urlParams.get("query");
 
-    let query = $state(queryParam ?? storageService.getQuery() ?? "");
-    let queryName = $state("");
-    let error = $state("");
-    let lastQueryTime = $state(0);
-    let executing = $state(false);
-    let limit = $state(100000);
-    let perspectiveConfig = $state.raw({ columns: [], plugin: "datagrid" });
+    // Tab management
+    let tabs = $state([
+        {
+            id: 1,
+            name: "Query 1",
+            query: queryParam ?? storageService.getQuery() ?? "",
+            queryName: "",
+            limit: 100000,
+            perspectiveConfig: { columns: [], plugin: "datagrid" },
+            error: "",
+            lastQueryTime: 0,
+            executing: false,
+            resultViewerComponent: null,
+        },
+    ]);
+    let activeTabId = $state(1);
 
-    // References to components with methods
-    let resultViewerComponent;
+    // Get current active tab
+    function getActiveTab() {
+        return tabs.find((t) => t.id === activeTabId);
+    }
 
     onMount(async () => {
         await initializePerspective();
@@ -65,25 +77,32 @@
     }
 
     function loadSavedQuery(toLoad) {
-        queryName = toLoad.name;
-        query = toLoad.query;
-        perspectiveConfig = toLoad.perspectiveConfig ?? {
-            columns: [],
-            plugin: "datagrid",
-        };
+        const activeTab = getActiveTab();
+        if (activeTab) {
+            activeTab.queryName = toLoad.name;
+            activeTab.query = toLoad.query;
+            activeTab.perspectiveConfig = toLoad.perspectiveConfig ?? {
+                columns: [],
+                plugin: "datagrid",
+            };
+            tabs = [...tabs]; // Trigger reactivity
+        }
     }
 
     async function saveQuery() {
-        const config = await resultViewerComponent.saveViewerConfig();
+        const activeTab = getActiveTab();
+        if (!activeTab || !activeTab.resultViewerComponent) return;
+
+        const config = await activeTab.resultViewerComponent.saveViewerConfig();
 
         const newQuery = {
-            name: queryName,
-            query: query,
+            name: activeTab.queryName,
+            query: activeTab.query,
             perspectiveConfig: config,
         };
 
         savedQueries = savedQueries
-            .filter((q) => q.name !== queryName)
+            .filter((q) => q.name !== activeTab.queryName)
             .concat(newQuery)
             .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -91,9 +110,13 @@
     }
 
     function resetQuery() {
-        query = "";
-        queryName = "";
-        perspectiveConfig = { columns: [], plugin: "datagrid" };
+        const activeTab = getActiveTab();
+        if (activeTab) {
+            activeTab.query = "";
+            activeTab.queryName = "";
+            activeTab.perspectiveConfig = { columns: [], plugin: "datagrid" };
+            tabs = [...tabs]; // Trigger reactivity
+        }
     }
 
     function handleEnvironmentChange(newEnvironment) {
@@ -102,70 +125,99 @@
     }
 
     async function execute() {
-        storageService.saveQuery(query);
+        const activeTab = getActiveTab();
+        if (!activeTab) {
+            console.warn("No active tab", activeTabId);
+            return;
+        }
 
-        error = "";
-        executing = true;
-        lastQueryTime = 0;
+        console.log("Executing query", activeTab.query);
+
+        storageService.saveQuery(activeTab.query);
+
+        activeTab.error = "";
+        activeTab.executing = true;
+        activeTab.lastQueryTime = 0;
         const start = performance.now();
 
         const refreshTimer = setInterval(() => {
-            lastQueryTime = performance.now() - start;
+            activeTab.lastQueryTime = performance.now() - start;
+            tabs = [...tabs]; // Trigger reactivity
         }, 100);
 
         const result = await queryService.executeQuery(
-            query,
-            limit,
+            activeTab.query,
+            activeTab.limit,
             username,
             password,
             selectedEnvironment,
         );
 
-        executing = false;
+        activeTab.executing = false;
         clearInterval(refreshTimer);
-        lastQueryTime = performance.now() - start;
+        activeTab.lastQueryTime = performance.now() - start;
 
-        if (result.success) {
-            await resultViewerComponent.loadData(result.data);
+        if (result.success && activeTab.resultViewerComponent) {
+            await activeTab.resultViewerComponent.loadData(result.data);
         } else {
-            error = result.error;
+            console.log(
+                "Error",
+                result.success,
+                activeTab.resultViewerComponent,
+            );
+            activeTab.error = result.error;
         }
+
+        tabs = [...tabs]; // Trigger reactivity
     }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
 
-{#if loggedIn}
-    <div class="container">
-        <SavedQueriesSidebar
-            {savedQueries}
-            currentQueryName={queryName}
-            onQuerySelected={loadSavedQuery}
-        />
-
-        <div id="content">
-            <div id="editors">
-                <QueryEditor bind:query />
+{#snippet children(activeTab, isActive)}
+    {#if activeTab}
+        <div style:display={isActive ? "contents" : "none"}>
+            <div class="editors">
+                <QueryEditor bind:query={activeTab.query} />
             </div>
 
             <QueryControls
-                bind:queryName
-                bind:limit
+                bind:queryName={activeTab.queryName}
+                bind:limit={activeTab.limit}
                 bind:selectedEnvironment
-                {executing}
-                {lastQueryTime}
+                executing={activeTab.executing}
+                lastQueryTime={activeTab.lastQueryTime}
                 onSave={saveQuery}
                 onReset={resetQuery}
                 onExecute={execute}
                 onEnvironmentChange={handleEnvironmentChange}
             />
 
-            <ErrorDisplay {error} />
+            <ErrorDisplay error={activeTab.error} />
 
             <ResultViewer
-                bind:this={resultViewerComponent}
-                {perspectiveConfig}
+                bind:this={activeTab.resultViewerComponent}
+                perspectiveConfig={activeTab.perspectiveConfig}
+                id={"result" + activeTab.id}
             />
+        </div>
+    {/if}
+{/snippet}
+
+{#if loggedIn}
+    <div class="container">
+        <SavedQueriesSidebar
+            {savedQueries}
+            currentQueryName={getActiveTab()?.queryName || ""}
+            onQuerySelected={loadSavedQuery}
+        />
+
+        <div id="content">
+            <TabContainer bind:tabs bind:activeTabId>
+                {#each tabs as tab}
+                    {@render children(tab, tab.id === activeTabId)}
+                {/each}
+            </TabContainer>
         </div>
     </div>
 {:else}
@@ -183,7 +235,7 @@
         margin-right: 2em;
     }
 
-    #editors {
+    .editors {
         display: flex;
         flex-direction: row;
     }

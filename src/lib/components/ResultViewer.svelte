@@ -5,10 +5,10 @@
     import "@finos/perspective-viewer-datagrid";
     import "@finos/perspective-viewer-d3fc";
 
-    export let perspectiveConfig = { columns: [], plugin: "datagrid" };
+    let { perspectiveConfig, id } = $props();
 
-    let worker = null;
-    let viewer;
+    let worker = $state.raw(null);
+    let viewer = $state.raw(null);
 
     onMount(async () => {
         if (worker === null) {
@@ -28,7 +28,8 @@
         }
 
         const table = await worker.table(arrow);
-        viewer = document.getElementById("result");
+        viewer = document.getElementById(id);
+
         // needs to be await otherwise restorting configuration will fail
         await viewer.load(table);
 
@@ -47,14 +48,14 @@
     }
 </script>
 
-<perspective-viewer id="result"></perspective-viewer>
+<perspective-viewer {id} class="resultviewer"></perspective-viewer>
 
 <style>
     :global {
         @import url("../../../node_modules/@finos/perspective-viewer/dist/css/themes.css");
     }
 
-    #result {
+    .resultviewer {
         flex-grow: 1;
         min-height: 600px;
         margin-top: 1em;

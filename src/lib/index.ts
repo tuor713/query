@@ -6,6 +6,7 @@ export { default as QueryControls } from './components/QueryControls.svelte';
 export { default as EnvironmentSelector } from './components/EnvironmentSelector.svelte';
 export { default as ErrorDisplay } from './components/ErrorDisplay.svelte';
 export { default as ResultViewer } from './components/ResultViewer.svelte';
+export { default as TabContainer } from './components/TabContainer.svelte';
 
 // Services
 export { initializePerspective } from './services/PerspectiveInitializer.js';
