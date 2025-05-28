@@ -225,6 +225,10 @@
 {/if}
 
 <style>
+    :global(body) {
+        margin: 0;
+    }
+
     #content {
         display: flex;
         flex-direction: column;
