@@ -2,11 +2,16 @@
     export let savedQueries = [];
     export let currentQueryName = "";
     export let onQuerySelected;
+    export let isCollapsed = false;
+    export let onToggle;
 </script>
 
-<div class="sidebar" id="sidebar">
+<div class="sidebar" class:collapsed={isCollapsed} id="sidebar">
     <h2>
         <span class="icon">📚</span><span class="label">Saved Queries</span>
+        <button class="toggle-btn" on:click={onToggle} title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            {isCollapsed ? "▶" : "◀"}
+        </button>
     </h2>
     <ul>
         {#each savedQueries as query}
@@ -32,6 +37,21 @@
         overflow-x: hidden;
     }
 
+    .sidebar.collapsed {
+        width: 40px;
+        min-width: 40px;
+        padding: 20px 5px;
+    }
+
+    .sidebar.collapsed .label,
+    .sidebar.collapsed .icon {
+        display: none;
+    }
+
+    .sidebar.collapsed ul {
+        display: none;
+    }
+
     .sidebar * {
         margin: 0;
         padding: 0;
@@ -41,6 +61,9 @@
     .sidebar h2 {
         margin-bottom: 20px;
         white-space: nowrap;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .sidebar ul {
@@ -62,6 +85,21 @@
     }
 
     .sidebar ul li a:hover {
+        background-color: #ddd;
+    }
+
+    .toggle-btn {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 2px;
+        transition: background-color 0.2s;
+        flex-shrink: 0;
+    }
+
+    .toggle-btn:hover {
         background-color: #ddd;
     }
 </style>

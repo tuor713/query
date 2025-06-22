@@ -35,6 +35,7 @@
     let selectedEnvironment = $state(
         storageService.getEnvironment() || getDefaultEnvironment(),
     );
+    let sidebarCollapsed = $state(false);
 
     // Initialize query from URL or local storage
     const urlParams = new URLSearchParams(window.location.search);
@@ -128,6 +129,10 @@
     function handleEnvironmentChange(newEnvironment) {
         selectedEnvironment = newEnvironment;
         storageService.saveEnvironment(selectedEnvironment);
+    }
+
+    function toggleSidebar() {
+        sidebarCollapsed = !sidebarCollapsed;
     }
 
     async function execute() {
@@ -255,6 +260,8 @@
             {savedQueries}
             currentQueryName={getActiveTab()?.queryName || ""}
             onQuerySelected={loadSavedQuery}
+            isCollapsed={sidebarCollapsed}
+            onToggle={toggleSidebar}
         />
 
         <div id="content">
