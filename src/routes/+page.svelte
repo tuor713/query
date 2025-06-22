@@ -8,6 +8,7 @@
 
         // Config
         getDefaultEnvironment,
+        runMalloyQuery,
 
         // Components
         LoginComponent,
@@ -18,6 +19,9 @@
         ResultViewer,
         TabContainer,
     } from "$lib";
+
+    import { MalloyRenderer } from "@malloydata/render";
+    import { API } from "@malloydata/malloy";
 
     // Services
     const storageService = new StorageService();
@@ -46,6 +50,8 @@
             limit: 100000,
             perspectiveConfig: { columns: [], plugin: "datagrid" },
             error: "",
+            language: "sql",
+            display: "perspective",
             lastQueryTime: 0,
             executing: false,
             resultViewerComponent: null,
@@ -132,6 +138,7 @@
         }
 
         console.log("Executing query", activeTab.query);
+        console.log("Executing language", activeTab.language);
 
         storageService.saveQuery(activeTab.query);
 
@@ -145,27 +152,56 @@
             tabs = [...tabs]; // Trigger reactivity
         }, 100);
 
-        const result = await queryService.executeQuery(
-            activeTab.query,
-            activeTab.limit,
-            username,
-            password,
-            selectedEnvironment,
-        );
-
-        activeTab.executing = false;
-        clearInterval(refreshTimer);
-        activeTab.lastQueryTime = performance.now() - start;
-
-        if (result.success && activeTab.resultViewerComponent) {
-            await activeTab.resultViewerComponent.loadData(result.data);
-        } else {
-            console.log(
-                "Error",
-                result.success,
-                activeTab.resultViewerComponent,
+        if (activeTab.language === "sql") {
+            const result = await queryService.executeQuery(
+                activeTab.query,
+                activeTab.limit,
+                username,
+                password,
+                selectedEnvironment,
             );
-            activeTab.error = result.error;
+
+            activeTab.executing = false;
+            clearInterval(refreshTimer);
+            activeTab.lastQueryTime = performance.now() - start;
+
+            if (result.success && activeTab.resultViewerComponent) {
+                await activeTab.resultViewerComponent.loadData(result.data);
+            } else {
+                console.log(
+                    "Error",
+                    result.success,
+                    activeTab.resultViewerComponent,
+                );
+                activeTab.error = result.error;
+            }
+        } else {
+            // handle Malloy
+            const result = await runMalloyQuery(
+                activeTab.query,
+                activeTab.limit,
+                username,
+                password,
+                selectedEnvironment,
+            );
+            console.log(result);
+
+            activeTab.executing = false;
+            clearInterval(refreshTimer);
+            activeTab.lastQueryTime = performance.now() - start;
+
+            if (activeTab.display === "perspective") {
+                await activeTab.resultViewerComponent.loadData(
+                    result.data.queryData,
+                );
+            } else {
+                const renderer = new MalloyRenderer({});
+                const malloyViz = renderer.createViz({});
+                malloyViz.setResult(API.util.wrapResult(result));
+                malloyViz.render(
+                    document.getElementById("malloyrender" + activeTab.id),
+                );
+            }
         }
 
         tabs = [...tabs]; // Trigger reactivity
@@ -185,6 +221,8 @@
                 bind:queryName={activeTab.queryName}
                 bind:limit={activeTab.limit}
                 bind:selectedEnvironment
+                bind:language={activeTab.language}
+                bind:display={activeTab.display}
                 executing={activeTab.executing}
                 lastQueryTime={activeTab.lastQueryTime}
                 onSave={saveQuery}
@@ -195,11 +233,18 @@
 
             <ErrorDisplay error={activeTab.error} />
 
-            <ResultViewer
-                bind:this={activeTab.resultViewerComponent}
-                perspectiveConfig={activeTab.perspectiveConfig}
-                id={"result" + activeTab.id}
-            />
+            {#if activeTab.display === "perspective"}
+                <ResultViewer
+                    bind:this={activeTab.resultViewerComponent}
+                    perspectiveConfig={activeTab.perspectiveConfig}
+                    id={"result" + activeTab.id}
+                />
+            {:else}
+                <div
+                    id={"malloyrender" + activeTab.id}
+                    class="malloyrender"
+                ></div>
+            {/if}
         </div>
     {/if}
 {/snippet}
@@ -242,6 +287,12 @@
     .editors {
         display: flex;
         flex-direction: row;
+    }
+
+    .malloyrender {
+        flex-grow: 1;
+        min-height: 600px;
+        margin-top: 1em;
     }
 
     .container {

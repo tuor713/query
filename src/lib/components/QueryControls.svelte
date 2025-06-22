@@ -6,6 +6,8 @@
     export let executing = false;
     export let lastQueryTime = 0;
     export let selectedEnvironment;
+    export let language = "sql";
+    export let display = "perspective";
     export let onEnvironmentChange;
     export let onSave;
     export let onReset;
@@ -27,6 +29,18 @@
         bind:selectedEnvironment
         onChange={onEnvironmentChange}
     />
+    &nbsp;
+    <span>Language</span>
+    <select bind:value={language}>
+        <option value="sql" selected>sql</option>
+        <option value="malloy">malloy</option>
+    </select>
+    &nbsp;
+    <span>Display</span>
+    <select bind:value={display}>
+        <option value="perspective" selected>perspective</option>
+        <option value="malloy">malloy</option>
+    </select>
     &nbsp;
     <button id="run" on:click={onExecute} disabled={executing}>
         {#if executing}

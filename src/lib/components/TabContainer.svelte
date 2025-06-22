@@ -1,4 +1,6 @@
 <script>
+    import { languages } from "monaco-editor";
+
     let {
         tabs = $bindable([]),
         activeTabId = $bindable(0),
@@ -13,6 +15,8 @@
             query: "",
             queryName: "",
             limit: 100000,
+            language: "sql",
+            display: "perspective",
             perspectiveConfig: { columns: [], plugin: "datagrid" },
             error: "",
             lastQueryTime: 0,
