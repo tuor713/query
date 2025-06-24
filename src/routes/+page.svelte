@@ -182,30 +182,41 @@
             }
         } else {
             // handle Malloy
-            const result = await runMalloyQuery(
-                activeTab.query,
-                activeTab.limit,
-                username,
-                password,
-                selectedEnvironment,
-            );
-            console.log(result);
+            var error = null;
+            var result = null;
+            try {
+                result = await runMalloyQuery(
+                    activeTab.query,
+                    activeTab.limit,
+                    username,
+                    password,
+                    selectedEnvironment,
+                );
+                console.log(result);
+            } catch (e) {
+                console.error(e);
+                error = String(e);
+            }
 
             activeTab.executing = false;
             clearInterval(refreshTimer);
             activeTab.lastQueryTime = performance.now() - start;
 
-            if (activeTab.display === "perspective") {
-                await activeTab.resultViewerComponent.loadData(
-                    result.data.queryData,
-                );
+            if (error === null) {
+                if (activeTab.display === "perspective") {
+                    await activeTab.resultViewerComponent.loadData(
+                        result.data.queryData,
+                    );
+                } else {
+                    const renderer = new MalloyRenderer({});
+                    const malloyViz = renderer.createViz({});
+                    malloyViz.setResult(API.util.wrapResult(result));
+                    malloyViz.render(
+                        document.getElementById("malloyrender" + activeTab.id),
+                    );
+                }
             } else {
-                const renderer = new MalloyRenderer({});
-                const malloyViz = renderer.createViz({});
-                malloyViz.setResult(API.util.wrapResult(result));
-                malloyViz.render(
-                    document.getElementById("malloyrender" + activeTab.id),
-                );
+                activeTab.error = error;
             }
         }
 
