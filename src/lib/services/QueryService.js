@@ -1,6 +1,8 @@
 /**
  * Service for handling SQL queries and execution
  */
+import { rewriteQueryWithLimit, isSpecialCommand } from '../utils/sqlParser.js';
+
 export class QueryService {
   constructor(baseUrl = "http://localhost:8888") {
     this.baseUrl = baseUrl;
@@ -18,15 +20,9 @@ export class QueryService {
     format = "arrow",
   ) {
     // Check if query is a special command that should not have LIMIT applied
-    const trimmedQuery = query.trim().toUpperCase();
-    const isShowCommand = trimmedQuery.startsWith("SHOW ");
-    const isDescribeCommand = trimmedQuery.startsWith("DESCRIBE ");
-
-    // Don't apply LIMIT to SHOW and DESCRIBE commands
-    const finalQuery =
-      isShowCommand || isDescribeCommand
-        ? query
-        : `SELECT * FROM (\n${query}\n) LIMIT ${limit}`;
+    const finalQuery = isSpecialCommand(query)
+      ? query
+      : rewriteQueryWithLimit(query, limit);
 
     const response = await fetch(`${this.baseUrl}/trino`, {
       method: "POST",
