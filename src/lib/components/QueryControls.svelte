@@ -37,9 +37,11 @@
     </select>
     &nbsp;
     <span>Display</span>
-    <select bind:value={display}>
+    <select bind:value={display} disabled={language !== "malloy"}>
         <option value="perspective" selected>perspective</option>
-        <option value="malloy">malloy</option>
+        {#if language === "malloy"}
+            <option value="malloy">malloy</option>
+        {/if}
     </select>
     &nbsp;
     <button id="run" on:click={onExecute} disabled={executing}>
