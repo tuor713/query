@@ -5,6 +5,45 @@ import { TrinoPrestoConnection } from "@malloydata/db-trino";
 import { QueryService } from "./QueryService.js";
 import { nanoid } from "nanoid";
 
+// Cache for DESCRIBE queries
+const describeCache = new Map<string, {
+  result: any;
+  timestamp: number;
+  ttl: number;
+}>();
+
+const DESCRIBE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+
+function isDescribeQuery(sql: string): boolean {
+  const trimmedSql = sql.trim().toUpperCase();
+  return trimmedSql.startsWith("DESCRIBE");
+}
+
+function getCacheKey(sql: string, username: string, environment: string): string {
+  return `${environment}:${username}:${sql.trim().toUpperCase()}`;
+}
+
+function getCachedResult(cacheKey: string): any | null {
+  const cached = describeCache.get(cacheKey);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (now - cached.timestamp > cached.ttl) {
+    describeCache.delete(cacheKey);
+    return null;
+  }
+  
+  return cached.result;
+}
+
+function setCachedResult(cacheKey: string, result: any): void {
+  describeCache.set(cacheKey, {
+    result,
+    timestamp: Date.now(),
+    ttl: DESCRIBE_CACHE_TTL
+  });
+}
+
 class RemoteTrinoRunner implements BaseRunner {
   constructor(
     defaultLimit: number,
@@ -33,6 +72,16 @@ class RemoteTrinoRunner implements BaseRunner {
   }> {
     console.log("RemoteTrinoRunner.runSQL", sql);
 
+    // Check if this is a DESCRIBE query and if we have a cached result
+    if (isDescribeQuery(sql)) {
+      const cacheKey = getCacheKey(sql, this.username, this.environment);
+      const cachedResult = getCachedResult(cacheKey);
+      if (cachedResult) {
+        console.log("RemoteTrinoRunner.runSQL - using cached result for DESCRIBE query");
+        return cachedResult;
+      }
+    }
+
     let qs = new QueryService();
 
     const result = await qs.executeQuery(
@@ -46,11 +95,12 @@ class RemoteTrinoRunner implements BaseRunner {
     console.log("RemoteTrinoRunner.runSQL", result);
 
     if (result.error) {
-      return {
+      const errorResult = {
         rows: [],
         columns: [],
         error: JSON.stringify(result.error),
       };
+      return errorResult;
     }
     const columns = [];
     for (let i = 0; i < result.columns.length; i++) {
@@ -71,7 +121,15 @@ class RemoteTrinoRunner implements BaseRunner {
       }
     }
 
-    return { rows: outputRows, columns };
+    const finalResult = { rows: outputRows, columns };
+
+    // Cache DESCRIBE query results
+    if (isDescribeQuery(sql)) {
+      const cacheKey = getCacheKey(sql, this.username, this.environment);
+      setCachedResult(cacheKey, finalResult);
+    }
+
+    return finalResult;
   }
 }
 
