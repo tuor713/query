@@ -1,7 +1,7 @@
 /**
  * Service for handling SQL queries and execution
  */
-import { rewriteQueryWithLimit, isSpecialCommand } from '../utils/sqlParser.js';
+import { rewriteQueryWithLimit, isSpecialCommand } from "../utils/sqlParser.js";
 
 export class QueryService {
   constructor(baseUrl = "http://localhost:8888") {
@@ -24,6 +24,7 @@ export class QueryService {
       ? query
       : rewriteQueryWithLimit(query, limit);
 
+    const start = performance.now();
     const response = await fetch(`${this.baseUrl}/trino`, {
       method: "POST",
       headers: {
@@ -38,7 +39,8 @@ export class QueryService {
       }),
     });
 
-    console.log("backend response", response);
+    const timeTaken = performance.now() - start;
+    console.log("backend response in ", timeTaken, response);
 
     if (response.ok) {
       if (format === "arrow") {
