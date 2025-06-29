@@ -9,7 +9,11 @@
 <div class="sidebar" class:collapsed={isCollapsed} id="sidebar">
     <h2>
         <span class="icon">📚</span><span class="label">Saved Queries</span>
-        <button class="toggle-btn" on:click={onToggle} title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+        <button
+            class="toggle-btn"
+            on:click={onToggle}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
             {isCollapsed ? "▶" : "◀"}
         </button>
     </h2>
@@ -17,7 +21,11 @@
         {#each savedQueries as query}
             <li>
                 <a on:click={() => onQuerySelected(query)}>
-                    <span class={query.name === currentQueryName ? "label selected" : "label"}>
+                    <span
+                        class={query.name === currentQueryName
+                            ? "label selected"
+                            : "label"}
+                    >
                         {query.name}
                     </span>
                 </a>
@@ -38,8 +46,8 @@
     }
 
     .sidebar.collapsed {
-        width: 40px;
-        min-width: 40px;
+        width: 25px;
+        min-width: 25px;
         padding: 20px 5px;
     }
 
