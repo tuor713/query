@@ -17,6 +17,31 @@ export const environments = [
     name: "Prod",
     cluster: "prod",
   },
+  {
+    id: "prod-nj",
+    name: "Prod NJ",
+    cluster: "prod-nj",
+  },
+  {
+    id: "prod-mw",
+    name: "Prod MW",
+    cluster: "prod-mw",
+  },
+  {
+    id: "starburst-prod-mw",
+    name: "Starburst Prod MW",
+    cluster: "starburst-prod-mw",
+  },
+  {
+    id: "starburst-prod-nj",
+    name: "Starburst Prod NJ",
+    cluster: "starburst-prod-nj",
+  },
+  {
+    id: "starburst-uat",
+    name: "Starburst UAT",
+    cluster: "starburst-uat",
+  },
 ];
 
 /**
