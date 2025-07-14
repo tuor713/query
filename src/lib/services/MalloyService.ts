@@ -1,16 +1,24 @@
-import { SingleConnectionRuntime } from "@malloydata/malloy";
-import type { StructDef, RunSQLOptions } from "@malloydata/malloy";
+import { SingleConnectionRuntime, InMemoryURLReader } from "@malloydata/malloy";
+import type {
+  StructDef,
+  RunSQLOptions,
+  URLReader,
+  InvalidationKey,
+} from "@malloydata/malloy";
 import type { BaseRunner } from "@malloydata/db-trino";
 import { TrinoPrestoConnection } from "@malloydata/db-trino";
 import { QueryService } from "./QueryService.js";
 import { nanoid } from "nanoid";
 
 // Cache for DESCRIBE queries
-const describeCache = new Map<string, {
-  result: any;
-  timestamp: number;
-  ttl: number;
-}>();
+const describeCache = new Map<
+  string,
+  {
+    result: any;
+    timestamp: number;
+    ttl: number;
+  }
+>();
 
 const DESCRIBE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
 
@@ -19,20 +27,24 @@ function isDescribeQuery(sql: string): boolean {
   return trimmedSql.startsWith("DESCRIBE");
 }
 
-function getCacheKey(sql: string, username: string, environment: string): string {
+function getCacheKey(
+  sql: string,
+  username: string,
+  environment: string,
+): string {
   return `${environment}:${username}:${sql.trim().toUpperCase()}`;
 }
 
 function getCachedResult(cacheKey: string): any | null {
   const cached = describeCache.get(cacheKey);
   if (!cached) return null;
-  
+
   const now = Date.now();
   if (now - cached.timestamp > cached.ttl) {
     describeCache.delete(cacheKey);
     return null;
   }
-  
+
   return cached.result;
 }
 
@@ -40,8 +52,126 @@ function setCachedResult(cacheKey: string, result: any): void {
   describeCache.set(cacheKey, {
     result,
     timestamp: Date.now(),
-    ttl: DESCRIBE_CACHE_TTL
+    ttl: DESCRIBE_CACHE_TTL,
   });
+}
+
+// Utility functions for URL reading
+function isInternalURL(url: string): boolean {
+  return url.startsWith("internal://") || url.startsWith("malloy://");
+}
+
+async function hashForInvalidationKey(contents: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(contents);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return hashHex;
+}
+
+// Cache for dynamic URL fetching
+const urlCache = new Map<
+  string,
+  {
+    contents: string;
+    timestamp: number;
+    ttl: number;
+  }
+>();
+
+const URL_CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+class DynamicURLReader implements URLReader {
+  constructor(private defaultTTL: number = URL_CACHE_TTL) {}
+
+  // Allow clearing the cache for testing or manual refresh
+  public clearCache(): void {
+    urlCache.clear();
+  }
+
+  // Allow getting cache statistics
+  public getCacheStats(): { size: number; entries: string[] } {
+    return {
+      size: urlCache.size,
+      entries: Array.from(urlCache.keys()),
+    };
+  }
+
+  public async readURL(
+    url: URL,
+  ): Promise<{ contents: string; invalidationKey: InvalidationKey }> {
+    const urlString = url.toString();
+    const cached = urlCache.get(urlString);
+
+    // Check if we have a valid cached result
+    if (cached) {
+      const now = Date.now();
+      if (now - cached.timestamp <= cached.ttl) {
+        return {
+          contents: cached.contents,
+          invalidationKey: await this.invalidationKey(url, cached.contents),
+        };
+      } else {
+        // Cache expired, remove it
+        urlCache.delete(urlString);
+      }
+    }
+
+    // Fetch the URL
+    try {
+      const response = await fetch(urlString);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const contents = await response.text();
+
+      // Cache the result
+      urlCache.set(urlString, {
+        contents,
+        timestamp: Date.now(),
+        ttl: this.defaultTTL,
+      });
+
+      return {
+        contents,
+        invalidationKey: await this.invalidationKey(url, contents),
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to fetch URL '${urlString}': ${errorMessage}`);
+    }
+  }
+
+  public async getInvalidationKey(url: URL): Promise<InvalidationKey> {
+    const urlString = url.toString();
+    const cached = urlCache.get(urlString);
+
+    if (cached) {
+      const now = Date.now();
+      if (now - cached.timestamp <= cached.ttl) {
+        return await this.invalidationKey(url, cached.contents);
+      }
+    }
+
+    // If not cached or expired, we need to fetch it
+    const result = await this.readURL(url);
+    return result.invalidationKey;
+  }
+
+  private async invalidationKey(
+    url: URL,
+    contents: string,
+  ): Promise<InvalidationKey> {
+    if (isInternalURL(url.toString())) {
+      return null;
+    }
+    return await hashForInvalidationKey(contents);
+  }
 }
 
 class RemoteTrinoRunner implements BaseRunner {
@@ -77,7 +207,9 @@ class RemoteTrinoRunner implements BaseRunner {
       const cacheKey = getCacheKey(sql, this.username, this.environment);
       const cachedResult = getCachedResult(cacheKey);
       if (cachedResult) {
-        console.log("RemoteTrinoRunner.runSQL - using cached result for DESCRIBE query");
+        console.log(
+          "RemoteTrinoRunner.runSQL - using cached result for DESCRIBE query",
+        );
         return cachedResult;
       }
     }
@@ -181,7 +313,11 @@ export async function runMalloyQuery(
     password,
     environment,
   );
-  const runtime = new SingleConnectionRuntime({ connection: connection });
+
+  const runtime = new SingleConnectionRuntime({
+    connection: connection,
+    urlReader: new DynamicURLReader(URL_CACHE_TTL),
+  });
   const res = runtime.loadQuery(query);
   const result = await res.run();
   console.log("Malloy result", result);
