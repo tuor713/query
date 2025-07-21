@@ -122,7 +122,15 @@ class DynamicURLReader implements URLReader {
 
     // Fetch the URL
     try {
-      const response = await fetch(urlString);
+      let fetchString = urlString;
+      if (fetchString.startsWith("shared://")) {
+        fetchString =
+          window.location.origin +
+          "/" +
+          fetchString.substring("shared://".length);
+      }
+
+      const response = await fetch(fetchString);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
