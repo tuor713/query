@@ -1,7 +1,5 @@
 <script>
-    export let username = "";
-    export let password = "";
-    export let onLogin;
+    let { username = $bindable(""), password = $bindable(""), onLogin } = $props();
 
     function handleKeyDown(e) {
         if (e.key === "Enter") {
@@ -24,15 +22,15 @@
             type="text" 
             placeholder="username" 
             bind:value={username} 
-            on:keydown={handleKeyDown}
+            onkeydown={handleKeyDown}
         />
         <input
             type="password"
             placeholder="password"
             bind:value={password}
-            on:keydown={handleKeyDown}
+            onkeydown={handleKeyDown}
         />
-        <button on:click={doLogin}>Login</button>
+        <button onclick={doLogin}>Login</button>
     </div>
 </div>
 

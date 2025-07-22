@@ -1,9 +1,5 @@
 <script>
-    export let savedQueries = [];
-    export let currentQueryName = "";
-    export let onQuerySelected;
-    export let isCollapsed = false;
-    export let onToggle;
+    let { savedQueries = [], currentQueryName = "", onQuerySelected, isCollapsed = false, onToggle } = $props();
 </script>
 
 <div class="sidebar" class:collapsed={isCollapsed} id="sidebar">
@@ -11,7 +7,7 @@
         <span class="icon">📚</span><span class="label">Saved Queries</span>
         <button
             class="toggle-btn"
-            on:click={onToggle}
+            onclick={onToggle}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
             {isCollapsed ? "▶" : "◀"}
@@ -20,7 +16,7 @@
     <ul>
         {#each savedQueries as query}
             <li>
-                <a on:click={() => onQuerySelected(query)}>
+                <button onclick={() => onQuerySelected(query)} class="query-button">
                     <span
                         class={query.name === currentQueryName
                             ? "label selected"
@@ -28,7 +24,7 @@
                     >
                         {query.name}
                     </span>
-                </a>
+                </button>
             </li>
         {/each}
     </ul>
@@ -82,7 +78,9 @@
         font-weight: bold;
     }
 
-    .sidebar ul li a {
+    .sidebar ul li .query-button {
+        background: none;
+        border: none;
         text-decoration: none;
         color: #333;
         display: block;
@@ -90,9 +88,12 @@
         border-radius: 4px;
         transition: background-color 0.3s;
         cursor: pointer;
+        width: 100%;
+        text-align: left;
+        font: inherit;
     }
 
-    .sidebar ul li a:hover {
+    .sidebar ul li .query-button:hover {
         background-color: #ddd;
     }
 

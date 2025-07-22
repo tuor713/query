@@ -1,8 +1,7 @@
 <script>
     import { environments } from "../config/environments";
     
-    export let selectedEnvironment;
-    export let onChange = () => {};
+    let { selectedEnvironment = $bindable(), onChange = () => {} } = $props();
     
     function handleChange(event) {
         selectedEnvironment = event.target.value;
@@ -12,7 +11,7 @@
 
 <label class="env-selector">
     <span>Environment</span>
-    <select bind:value={selectedEnvironment} on:change={handleChange}>
+    <select bind:value={selectedEnvironment} onchange={handleChange}>
         {#each environments as env}
             <option value={env.id}>{env.name}</option>
         {/each}

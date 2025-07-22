@@ -1,7 +1,7 @@
 <script>
     import Monaco from "svelte-monaco";
 
-    export let query = "";
+    let { query = $bindable("") } = $props();
 
     // Monaco editor options
     const options = {

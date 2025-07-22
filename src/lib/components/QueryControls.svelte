@@ -1,24 +1,26 @@
 <script>
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
 
-    export let queryName = "";
-    export let limit = 100000;
-    export let executing = false;
-    export let lastQueryTime = 0;
-    export let selectedEnvironment;
-    export let language = "sql";
-    export let display = "perspective";
-    export let onEnvironmentChange;
-    export let onSave;
-    export let onReset;
-    export let onExecute;
+    let {
+        queryName = $bindable(""),
+        limit = $bindable(100000),
+        executing = false,
+        lastQueryTime = 0,
+        selectedEnvironment = $bindable(),
+        language = $bindable("sql"),
+        display = $bindable("perspective"),
+        onEnvironmentChange,
+        onSave,
+        onReset,
+        onExecute,
+    } = $props();
 </script>
 
 <div>
     <input type="text" placeholder="Query Name" bind:value={queryName} />
-    <button on:click={onSave}>Save Query</button>
+    <button onclick={onSave}>Save Query</button>
     &nbsp;
-    <button on:click={onReset}>Reset</button>
+    <button onclick={onReset}>Reset</button>
     &nbsp;
     <label class="limit-control">
         <span>Limit</span>
@@ -44,7 +46,7 @@
         {/if}
     </select>
     &nbsp;
-    <button id="run" on:click={onExecute} disabled={executing}>
+    <button id="run" onclick={onExecute} disabled={executing}>
         {#if executing}
             Running...
         {:else}
