@@ -36,7 +36,11 @@
         if (perspectiveConfig) {
             await viewer.restore(perspectiveConfig);
         } else {
-            await viewer.restore({ columns: [], plugin: "datagrid" });
+            await viewer.restore({
+                columns: [],
+                plugin: "datagrid",
+                plugin_config: { edit_mode: "EDIT" },
+            });
         }
     }
 

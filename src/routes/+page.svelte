@@ -49,7 +49,11 @@
             query: queryParam ?? storageService.getQuery() ?? "",
             queryName: "",
             limit: 100000,
-            perspectiveConfig: { columns: [], plugin: "datagrid" },
+            perspectiveConfig: {
+                columns: [],
+                plugin: "datagrid",
+                plugin_config: { edit_mode: "EDIT" },
+            },
             error: "",
             language: "sql",
             display: "perspective",
@@ -91,6 +95,7 @@
             activeTab.perspectiveConfig = toLoad.perspectiveConfig ?? {
                 columns: [],
                 plugin: "datagrid",
+                plugin_config: { edit_mode: "EDIT" },
             };
             tabs = [...tabs]; // Trigger reactivity
         }
@@ -121,7 +126,11 @@
         if (activeTab) {
             activeTab.query = "";
             activeTab.queryName = "";
-            activeTab.perspectiveConfig = { columns: [], plugin: "datagrid" };
+            activeTab.perspectiveConfig = {
+                columns: [],
+                plugin: "datagrid",
+                plugin_config: { edit_mode: "EDIT" },
+            };
             tabs = [...tabs]; // Trigger reactivity
         }
     }
