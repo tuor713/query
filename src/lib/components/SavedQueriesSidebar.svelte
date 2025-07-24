@@ -1,22 +1,38 @@
 <script>
-    let { savedQueries = [], currentQueryName = "", onQuerySelected, isCollapsed = false, onToggle } = $props();
+    import { Book, X } from "@lucide/svelte";
+
+    let {
+        savedQueries = [],
+        currentQueryName = "",
+        onQuerySelected,
+        isCollapsed = false,
+        onToggle,
+    } = $props();
 </script>
 
 <div class="sidebar" class:collapsed={isCollapsed} id="sidebar">
     <h2>
-        <span class="icon">📚</span><span class="label">Saved Queries</span>
-        <button
-            class="toggle-btn"
-            onclick={onToggle}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-            {isCollapsed ? "▶" : "◀"}
-        </button>
+        {#if isCollapsed}
+            <Book onclick={onToggle} />
+        {:else}
+            <Book />
+            <span class="label">Saved Queries</span>
+            <button
+                class="toggle-btn"
+                onclick={onToggle}
+                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+                <X />
+            </button>
+        {/if}
     </h2>
     <ul>
         {#each savedQueries as query}
             <li>
-                <button onclick={() => onQuerySelected(query)} class="query-button">
+                <button
+                    onclick={() => onQuerySelected(query)}
+                    class="query-button"
+                >
                     <span
                         class={query.name === currentQueryName
                             ? "label selected"
