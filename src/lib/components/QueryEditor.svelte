@@ -25,12 +25,11 @@
 
 <style>
     #sqleditor {
-        max-width: 60vw;
         border-width: 1px;
         border-style: solid;
         border-color: black;
-        flex: 2;
         height: auto;
+        width: auto;
         min-height: 100px;
         max-height: 50vh;
         overflow: auto;

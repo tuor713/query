@@ -319,8 +319,8 @@
     }
 
     .editors {
-        display: flex;
-        flex-direction: row;
+        display: grid;
+        grid-template-columns: minmax(0px, auto) 0px;
     }
 
     .malloyrender {
