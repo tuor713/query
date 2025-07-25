@@ -92,17 +92,15 @@
 
     .tab-bar {
         display: flex;
-        border-bottom: 1px solid #ccc;
-        background: #f5f5f5;
+        background: #fff;
         gap: 2px;
-        padding: 2px;
     }
 
     .tab {
         display: flex;
         align-items: center;
         padding: 2px 10px;
-        background: #e0e0e0;
+        background: #f1f1f1;
         border: 1px solid #ccc;
         border-bottom: none;
         cursor: pointer;
@@ -146,7 +144,7 @@
 
     .add-tab-btn {
         padding: 2px 10px;
-        background: #e0e0e0;
+        background: #f1f1f1;
         border: 1px solid #ccc;
         border-bottom: none;
         cursor: pointer;
