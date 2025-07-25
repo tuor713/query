@@ -52,6 +52,8 @@
         width: 250px;
         min-width: 250px;
         background-color: #f1f1f1;
+        font-family: Inter, ui-sans-serif;
+        color: #3c3c3c;
         padding: 20px;
         transition: all 0.3s ease;
         overflow-x: hidden;
