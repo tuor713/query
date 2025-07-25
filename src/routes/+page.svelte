@@ -167,27 +167,34 @@
         }, 100);
 
         if (activeTab.language === "sql") {
-            const result = await queryService.executeQuery(
-                activeTab.query,
-                activeTab.limit,
-                username,
-                password,
-                selectedEnvironment,
-            );
+            var result = null;
+            var error = null;
+            try {
+                result = await queryService.executeQuery(
+                    activeTab.query,
+                    activeTab.limit,
+                    username,
+                    password,
+                    selectedEnvironment,
+                );
+            } catch (e) {
+                console.error(e);
+                error = String(e);
+            }
 
             activeTab.executing = false;
             clearInterval(refreshTimer);
             activeTab.lastQueryTime = performance.now() - start;
 
-            if (result.success && activeTab.resultViewerComponent) {
+            if (
+                error === null &&
+                result.success &&
+                activeTab.resultViewerComponent
+            ) {
                 await activeTab.resultViewerComponent.loadData(result.data);
             } else {
-                console.log(
-                    "Error",
-                    result.success,
-                    activeTab.resultViewerComponent,
-                );
-                activeTab.error = result.error;
+                console.log("Error", result, activeTab.resultViewerComponent);
+                activeTab.error = error || result.error;
             }
         } else {
             // handle Malloy
