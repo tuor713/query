@@ -55,7 +55,7 @@
                 plugin_config: { edit_mode: "EDIT" },
             },
             error: "",
-            language: "sql",
+            language: storageService.getLanguage(),
             display: "perspective",
             lastQueryTime: 0,
             executing: false,
@@ -97,6 +97,9 @@
                 plugin: "datagrid",
                 plugin_config: { edit_mode: "EDIT" },
             };
+            activeTab.display = toLoad.display ?? "perspective";
+            activeTab.language = toLoad.language ?? "sql";
+            activeTab.limit = toLoad.limit ?? 100000;
             tabs = [...tabs]; // Trigger reactivity
         }
     }
@@ -111,6 +114,9 @@
             name: activeTab.queryName,
             query: activeTab.query,
             perspectiveConfig: config,
+            language: activeTab.language,
+            display: activeTab.display,
+            limit: activeTab.limit,
         };
 
         savedQueries = savedQueries
@@ -155,6 +161,7 @@
         console.log("Executing language", activeTab.language);
 
         storageService.saveQuery(activeTab.query);
+        storageService.saveLanguage(activeTab.language);
 
         activeTab.error = "";
         activeTab.executing = true;
