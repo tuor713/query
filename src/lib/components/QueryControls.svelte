@@ -1,5 +1,6 @@
 <script>
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
+    import { Save } from "@lucide/svelte";
 
     let {
         queryName = $bindable(""),
@@ -18,9 +19,7 @@
 
 <div>
     <input type="text" placeholder="Query Name" bind:value={queryName} />
-    <button onclick={onSave}>Save Query</button>
-    &nbsp;
-    <button onclick={onReset}>Reset</button>
+    <button onclick={onSave}><Save size="1em" /></button>
     &nbsp;
     <label class="limit-control">
         <span>Limit</span>
@@ -53,6 +52,8 @@
             Run
         {/if}
     </button>
+    &nbsp;
+    <button onclick={onReset}>Reset</button>
     &nbsp;
     {#if lastQueryTime > 0}
         <span id="lastQueryTime">
