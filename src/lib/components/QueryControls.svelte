@@ -19,7 +19,9 @@
 
 <div>
     <input type="text" placeholder="Query Name" bind:value={queryName} />
-    <button onclick={onSave}><Save size="1em" /></button>
+    <button onclick={onSave}
+        ><Save size="1em" style="vertical-align: middle;" /></button
+    >
     &nbsp;
     <label class="limit-control">
         <span>Limit</span>
