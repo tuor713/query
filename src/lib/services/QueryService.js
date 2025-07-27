@@ -18,6 +18,7 @@ export class QueryService {
     password,
     environment = "local",
     format = "arrow",
+    extraCredentials = [],
   ) {
     // Check if query is a special command that should not have LIMIT applied
     const finalQuery = isSpecialCommand(query)
@@ -36,6 +37,7 @@ export class QueryService {
         password: password,
         environment: environment,
         format: format,
+        extraCredentials: extraCredentials,
       }),
     });
 

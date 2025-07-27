@@ -188,16 +188,19 @@ class RemoteTrinoRunner implements BaseRunner {
     username: string,
     password: string,
     environment: string,
+    extraCredentials: any[] = [],
   ) {
     this.defaultLimit = defaultLimit;
     this.username = username;
     this.password = password;
     this.environment = environment;
+    this.extraCredentials = extraCredentials;
   }
   defaultLimit: number;
   username: string;
   password: string;
   environment: string;
+  extraCredentials: any[];
 
   async runSQL(
     sql: string,
@@ -231,6 +234,7 @@ class RemoteTrinoRunner implements BaseRunner {
       this.password,
       this.environment,
       "json",
+      this.extraCredentials,
     );
     console.log("RemoteTrinoRunner.runSQL", result);
 
@@ -280,10 +284,11 @@ export class RemoteTrinoConnection extends TrinoPrestoConnection {
     username: string,
     password: string,
     environment: string,
+    extraCredentials: any[] = [],
   ) {
     super(
       arg,
-      new RemoteTrinoRunner(defaultLimit, username, password, environment),
+      new RemoteTrinoRunner(defaultLimit, username, password, environment, extraCredentials),
       {},
     );
   }
@@ -312,6 +317,7 @@ export async function runMalloyQuery(
   username: string,
   password: string,
   environment: string,
+  extraCredentials: any[] = [],
 ): Promise<any> {
   console.log("Running Malloy query", query);
   const connection = new RemoteTrinoConnection(
@@ -320,6 +326,7 @@ export async function runMalloyQuery(
     username,
     password,
     environment,
+    extraCredentials,
   );
 
   const runtime = new SingleConnectionRuntime({

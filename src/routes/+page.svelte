@@ -30,6 +30,7 @@
     // State
     let username = $state(storageService.getUsername());
     let password = $state("");
+    let extraCredentials = $state([]);
     let loggedIn = $state(false);
     let savedQueries = $state(storageService.getSavedQueries());
     let selectedEnvironment = $state(
@@ -80,9 +81,10 @@
         }
     }
 
-    function doLogin(usernameInput, passwordInput) {
+    function doLogin(usernameInput, passwordInput, extraCredentialsInput = []) {
         username = usernameInput;
         password = passwordInput;
+        extraCredentials = extraCredentialsInput;
         loggedIn = true;
         storageService.saveUsername(username);
     }
@@ -183,6 +185,8 @@
                     username,
                     password,
                     selectedEnvironment,
+                    "arrow",
+                    extraCredentials,
                 );
             } catch (e) {
                 console.error(e);
@@ -214,6 +218,7 @@
                     username,
                     password,
                     selectedEnvironment,
+                    extraCredentials,
                 );
                 console.log(result);
             } catch (e) {
