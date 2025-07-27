@@ -236,12 +236,16 @@
                         result.data.queryData,
                     );
                 } else {
-                    const renderer = new MalloyRenderer({});
-                    const malloyViz = renderer.createViz({});
-                    malloyViz.setResult(API.util.wrapResult(result));
-                    malloyViz.render(
-                        document.getElementById("malloyrender" + activeTab.id),
+                    const el = document.getElementById(
+                        "malloyrender" + activeTab.id,
                     );
+                    if (el) {
+                        el.innerHTML = "";
+                        const renderer = new MalloyRenderer({});
+                        const malloyViz = renderer.createViz({});
+                        malloyViz.setResult(API.util.wrapResult(result));
+                        malloyViz.render(el);
+                    }
                 }
             } else {
                 activeTab.error = error;
