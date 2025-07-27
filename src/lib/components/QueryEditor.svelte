@@ -1,11 +1,20 @@
 <script>
     import Monaco from "svelte-monaco";
+    import { monarch } from "@malloydata/syntax-highlight/grammars/malloy/malloy.monarch";
 
-    let { query = $bindable("") } = $props();
+    let { query = $bindable(""), language = $bindable("sql") } = $props();
+
+    let monaco = $state.raw(null);
+
+    import loader from "@monaco-editor/loader";
+    loader.init().then(async (monaco) => {
+        monaco.languages.register({ id: "malloy" });
+        monaco.languages.setMonarchTokensProvider("malloy", monarch);
+    });
 
     // Monaco editor options
     const options = {
-        language: "sql",
+        language: language,
         theme: "vs",
         automaticLayout: true,
         minimap: {

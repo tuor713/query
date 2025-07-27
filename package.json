@@ -35,9 +35,9 @@
     "@malloydata/db-trino": "0.0.293",
     "@malloydata/malloy": "0.0.293",
     "@malloydata/render": "0.0.293",
+    "@malloydata/syntax-highlight": "0.0.293",
     "monaco-editor": "^0.52.2",
     "node-sql-parser": "^5.3.10",
-    "svelte-codemirror-editor": "^1.4.1",
     "svelte-monaco": "^1.0.4"
   }
 }

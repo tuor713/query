@@ -262,7 +262,10 @@
     {#if activeTab}
         <div style:display={isActive ? "contents" : "none"}>
             <div class="editors">
-                <QueryEditor bind:query={activeTab.query} />
+                <QueryEditor
+                    bind:query={activeTab.query}
+                    bind:language={activeTab.language}
+                />
             </div>
 
             <QueryControls
