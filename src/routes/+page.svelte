@@ -106,6 +106,11 @@
         }
     }
 
+    function deleteSavedQuery(queryName) {
+        savedQueries = savedQueries.filter((q) => q.name !== queryName);
+        storageService.saveSavedQueries(savedQueries);
+    }
+
     async function saveQuery() {
         const activeTab = getActiveTab();
         if (!activeTab || !activeTab.resultViewerComponent) return;
@@ -306,6 +311,7 @@
             {savedQueries}
             currentQueryName={getActiveTab()?.queryName || ""}
             onQuerySelected={loadSavedQuery}
+            onQueryDeleted={deleteSavedQuery}
             isCollapsed={sidebarCollapsed}
             onToggle={toggleSidebar}
         />

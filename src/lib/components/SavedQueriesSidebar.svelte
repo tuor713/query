@@ -5,6 +5,7 @@
         savedQueries = [],
         currentQueryName = "",
         onQuerySelected,
+        onQueryDeleted,
         isCollapsed = false,
         onToggle,
     } = $props();
@@ -28,7 +29,7 @@
     </h2>
     <ul>
         {#each savedQueries as query}
-            <li>
+            <li class="query-item">
                 <button
                     onclick={() => onQuerySelected(query)}
                     class="query-button"
@@ -40,6 +41,16 @@
                     >
                         {query.name}
                     </span>
+                </button>
+                <button
+                    class="delete-button"
+                    onclick={(e) => {
+                        e.stopPropagation();
+                        onQueryDeleted(query.name);
+                    }}
+                    title="Delete query"
+                >
+                    <X size="14" />
                 </button>
             </li>
         {/each}
@@ -96,6 +107,13 @@
         font-weight: bold;
     }
 
+    .query-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
     .sidebar ul li .query-button {
         background: none;
         border: none;
@@ -106,13 +124,37 @@
         border-radius: 4px;
         transition: background-color 0.3s;
         cursor: pointer;
-        width: 100%;
+        flex: 1;
         text-align: left;
         font: inherit;
     }
 
     .sidebar ul li .query-button:hover {
         background-color: #ddd;
+    }
+
+    .delete-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 2px;
+        color: #666;
+        opacity: 0;
+        transition: opacity 0.3s, background-color 0.2s;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .query-item:hover .delete-button {
+        opacity: 1;
+    }
+
+    .delete-button:hover {
+        background-color: #ddd;
+        color: #d32f2f;
     }
 
     .toggle-btn {
