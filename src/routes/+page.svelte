@@ -41,23 +41,50 @@
     // Initialize query from URL or local storage
     const urlParams = new URLSearchParams(window.location.search);
     const queryParam = urlParams.get("query");
+    const viewParam = urlParams.get("view");
+
+    // Parse view parameter if present
+    let initialTabData = {
+        query: queryParam ?? storageService.getQuery() ?? "",
+        queryName: "",
+        limit: 100000,
+        perspectiveConfig: {
+            columns: [],
+            plugin: "datagrid",
+            plugin_config: { edit_mode: "EDIT" },
+        },
+        language: storageService.getLanguage(),
+        display: "perspective",
+    };
+
+    if (viewParam) {
+        try {
+            const viewData = JSON.parse(atob(viewParam));
+            initialTabData = {
+                query: viewData.query || initialTabData.query,
+                queryName: viewData.queryName || initialTabData.queryName,
+                limit: viewData.limit || initialTabData.limit,
+                perspectiveConfig: viewData.perspectiveConfig || initialTabData.perspectiveConfig,
+                language: viewData.language || initialTabData.language,
+                display: viewData.display || initialTabData.display,
+            };
+        } catch (error) {
+            console.error('Failed to parse view parameter:', error);
+        }
+    }
 
     // Tab management
     let tabs = $state([
         {
             id: 1,
             name: "Query 1",
-            query: queryParam ?? storageService.getQuery() ?? "",
-            queryName: "",
-            limit: 100000,
-            perspectiveConfig: {
-                columns: [],
-                plugin: "datagrid",
-                plugin_config: { edit_mode: "EDIT" },
-            },
+            query: initialTabData.query,
+            queryName: initialTabData.queryName,
+            limit: initialTabData.limit,
+            perspectiveConfig: initialTabData.perspectiveConfig,
             error: "",
-            language: storageService.getLanguage(),
-            display: "perspective",
+            language: initialTabData.language,
+            display: initialTabData.display,
             lastQueryTime: 0,
             executing: false,
             resultViewerComponent: null,
@@ -155,6 +182,33 @@
 
     function toggleSidebar() {
         sidebarCollapsed = !sidebarCollapsed;
+    }
+
+    async function copyURL() {
+        const activeTab = getActiveTab();
+        if (!activeTab || !activeTab.resultViewerComponent) return;
+
+        try {
+            const perspectiveConfig = await activeTab.resultViewerComponent.saveViewerConfig();
+            
+            const viewData = {
+                query: activeTab.query,
+                perspectiveConfig: perspectiveConfig,
+                language: activeTab.language,
+                display: activeTab.display,
+                limit: activeTab.limit,
+                queryName: activeTab.queryName
+            };
+
+            const encodedView = btoa(JSON.stringify(viewData));
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('view', encodedView);
+            
+            await navigator.clipboard.writeText(currentUrl.toString());
+            console.log('URL copied to clipboard');
+        } catch (error) {
+            console.error('Failed to copy URL:', error);
+        }
     }
 
     async function execute() {
@@ -284,6 +338,7 @@
                 onSave={saveQuery}
                 onReset={resetQuery}
                 onExecute={execute}
+                onCopyURL={copyURL}
                 onEnvironmentChange={handleEnvironmentChange}
             />
 

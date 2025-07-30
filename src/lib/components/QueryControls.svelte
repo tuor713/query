@@ -1,6 +1,6 @@
 <script>
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
-    import { Save } from "@lucide/svelte";
+    import { Save, Link } from "@lucide/svelte";
 
     let {
         queryName = $bindable(""),
@@ -14,7 +14,18 @@
         onSave,
         onReset,
         onExecute,
+        onCopyURL,
     } = $props();
+
+    let showCopySuccess = $state(false);
+
+    async function handleCopyURL() {
+        await onCopyURL();
+        showCopySuccess = true;
+        setTimeout(() => {
+            showCopySuccess = false;
+        }, 2000);
+    }
 </script>
 
 <div class="controls-container">
@@ -74,6 +85,14 @@
                 {/if}
             </button>
             <button onclick={onReset}>Reset</button>
+            <div class="copy-url-container">
+                <button onclick={handleCopyURL} title="Copy URL to current view">
+                    <Link size="1em" style="vertical-align: middle;" />
+                </button>
+                {#if showCopySuccess}
+                    <div class="copy-success-popup">URL copied!</div>
+                {/if}
+            </div>
         </div>
     </div>
 
@@ -143,5 +162,35 @@
     button:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+    }
+
+    .copy-url-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .copy-success-popup {
+        position: absolute;
+        top: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        white-space: nowrap;
+        z-index: 1000;
+        pointer-events: none;
+    }
+
+    .copy-success-popup::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #333;
     }
 </style>
