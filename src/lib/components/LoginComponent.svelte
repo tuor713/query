@@ -36,9 +36,9 @@
 
 <div id="login">
     <div>
+        <h1>Trino Data Explorer</h1>
         <div class="logintitle">
-            <span class="loginh1">Login</span>
-            <span>&nbsp;&nbsp;(Windows)</span>
+            <h3>Login<span>&nbsp;&nbsp;(Windows)</span></h3>
         </div>
         <input
             type="text"
