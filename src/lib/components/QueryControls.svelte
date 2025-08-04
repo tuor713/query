@@ -66,11 +66,12 @@
 
     <div class="control-group">
         <label>Display</label>
-        <select bind:value={display} disabled={language !== "malloy"}>
+        <select bind:value={display}>
             <option value="perspective" selected>perspective</option>
             {#if language === "malloy"}
                 <option value="malloy">malloy</option>
             {/if}
+            <option value="mosaic">mosaic</option>
         </select>
     </div>
 
@@ -86,7 +87,10 @@
             </button>
             <button onclick={onReset}>Reset</button>
             <div class="copy-url-container">
-                <button onclick={handleCopyURL} title="Copy URL to current view">
+                <button
+                    onclick={handleCopyURL}
+                    title="Copy URL to current view"
+                >
                     <Link size="1em" style="vertical-align: middle;" />
                 </button>
                 {#if showCopySuccess}

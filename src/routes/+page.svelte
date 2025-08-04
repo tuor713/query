@@ -17,6 +17,7 @@
         QueryControls,
         ErrorDisplay,
         ResultViewer,
+        MosaicViewer,
         TabContainer,
     } from "$lib";
 
@@ -64,12 +65,14 @@
                 query: viewData.query || initialTabData.query,
                 queryName: viewData.queryName || initialTabData.queryName,
                 limit: viewData.limit || initialTabData.limit,
-                perspectiveConfig: viewData.perspectiveConfig || initialTabData.perspectiveConfig,
+                perspectiveConfig:
+                    viewData.perspectiveConfig ||
+                    initialTabData.perspectiveConfig,
                 language: viewData.language || initialTabData.language,
                 display: viewData.display || initialTabData.display,
             };
         } catch (error) {
-            console.error('Failed to parse view parameter:', error);
+            console.error("Failed to parse view parameter:", error);
         }
     }
 
@@ -189,25 +192,26 @@
         if (!activeTab || !activeTab.resultViewerComponent) return;
 
         try {
-            const perspectiveConfig = await activeTab.resultViewerComponent.saveViewerConfig();
-            
+            const perspectiveConfig =
+                await activeTab.resultViewerComponent.saveViewerConfig();
+
             const viewData = {
                 query: activeTab.query,
                 perspectiveConfig: perspectiveConfig,
                 language: activeTab.language,
                 display: activeTab.display,
                 limit: activeTab.limit,
-                queryName: activeTab.queryName
+                queryName: activeTab.queryName,
             };
 
             const encodedView = btoa(JSON.stringify(viewData));
             const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('view', encodedView);
-            
+            currentUrl.searchParams.set("view", encodedView);
+
             await navigator.clipboard.writeText(currentUrl.toString());
-            console.log('URL copied to clipboard');
+            console.log("URL copied to clipboard");
         } catch (error) {
-            console.error('Failed to copy URL:', error);
+            console.error("Failed to copy URL:", error);
         }
     }
 
@@ -350,11 +354,13 @@
                     perspectiveConfig={activeTab.perspectiveConfig}
                     id={"result" + activeTab.id}
                 />
-            {:else}
+            {:else if activeTab.display === "malloy"}
                 <div
                     id={"malloyrender" + activeTab.id}
                     class="malloyrender"
                 ></div>
+            {:else}
+                <MosaicViewer bind:this={activeTab.resultViewerComponent} />
             {/if}
         </div>
     {/if}
