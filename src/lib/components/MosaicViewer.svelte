@@ -3,11 +3,14 @@
     import { parseSpec, astToDOM } from "@uwdata/mosaic-spec";
     import yaml from "yaml";
     import { tableFromIPC } from "apache-arrow";
+    import { Pencil } from "@lucide/svelte";
 
     let spec = $state(`input: table
 from: results
 width: 800
 height: 600`);
+
+    let expanded = $state(true);
 
     const db = vg.wasmConnector();
     vg.coordinator().databaseConnector(db);
@@ -68,12 +71,23 @@ height: 600`);
 
 <div id="mosaic">
     <div id="mosaic-content"></div>
-    <div id="mosaic-spec-editor">
-        <h4>Mosaic Spec</h4>
-        <textarea id="mosaic-spec" bind:value={spec} cols="50" rows="20"
-        ></textarea>
-        <button on:click={() => reloadLayout()}>Apply</button>
-    </div>
+    {#if expanded}
+        <div id="mosaic-spec-editor">
+            <h4>Mosaic Spec</h4>
+            <textarea id="mosaic-spec" bind:value={spec} cols="50" rows="20"
+            ></textarea>
+            <div>
+                <button on:click={() => reloadLayout()}>Apply</button>
+                <button on:click={() => (expanded = false)}>Hide</button>
+            </div>
+        </div>
+    {:else}
+        <div>
+            <button on:click={() => (expanded = true)}
+                ><Pencil size="1em" style="vertical-align: middle;" /></button
+            >
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -90,5 +104,20 @@ height: 600`);
         flex-direction: column;
         gap: 0.2em;
         flex-grow: 1;
+    }
+
+    h4 {
+        margin-top: 0;
+    }
+
+    button {
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    button {
+        cursor: pointer;
+        background: #f5f5f5;
     }
 </style>
