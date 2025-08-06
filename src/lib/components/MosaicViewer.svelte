@@ -4,6 +4,7 @@
     import yaml from "yaml";
     import { tableFromIPC } from "apache-arrow";
     import { Pencil } from "@lucide/svelte";
+    import Monaco from "svelte-monaco";
 
     let spec = $state(`input: table
 from: results
@@ -11,6 +12,21 @@ width: 800
 height: 600`);
 
     let expanded = $state(true);
+
+    // Monaco editor options for YAML
+    const editorOptions = {
+        language: "yaml",
+        theme: "vs",
+        automaticLayout: true,
+        minimap: {
+            enabled: false,
+        },
+        scrollBeyondLastLine: false,
+        lineNumbers: "on",
+        wordWrap: "on",
+        folding: true,
+        fontSize: 12,
+    };
 
     const db = vg.wasmConnector();
     vg.coordinator().databaseConnector(db);
@@ -74,8 +90,9 @@ height: 600`);
     {#if expanded}
         <div id="mosaic-spec-editor">
             <h4>Mosaic Spec</h4>
-            <textarea id="mosaic-spec" bind:value={spec} cols="50" rows="20"
-            ></textarea>
+            <div id="mosaic-monaco-editor">
+                <Monaco bind:value={spec} options={editorOptions} />
+            </div>
             <div>
                 <button on:click={() => reloadLayout()}>Apply</button>
                 <button on:click={() => (expanded = false)}>Hide</button>
@@ -104,6 +121,15 @@ height: 600`);
         flex-direction: column;
         gap: 0.2em;
         flex-grow: 1;
+    }
+
+    #mosaic-monaco-editor {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        overflow: hidden;
+        width: 500px;
+        height: 400px;
+        min-height: 200px;
     }
 
     h4 {
