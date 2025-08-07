@@ -2,15 +2,34 @@
     import Monaco from "svelte-monaco";
     import { monarch } from "@malloydata/syntax-highlight/grammars/malloy/malloy.monarch";
 
-    let { query = $bindable(""), language = $bindable("sql") } = $props();
+    let {
+        query = $bindable(""),
+        language = $bindable("sql"),
+        onExecute,
+    } = $props();
 
     let monaco = $state.raw(null);
 
     import loader from "@monaco-editor/loader";
-    loader.init().then(async (monaco) => {
+    loader.init().then(async (monacoInstance) => {
+        monaco = monacoInstance;
         monaco.languages.register({ id: "malloy" });
         monaco.languages.setMonarchTokensProvider("malloy", monarch);
     });
+
+    function handleEditorMount(editor) {
+        // Add Ctrl+Enter keyboard shortcut for executing queries
+        if (monaco) {
+            editor.addCommand(
+                monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+                () => {
+                    if (onExecute) {
+                        onExecute();
+                    }
+                },
+            );
+        }
+    }
 
     // Monaco editor options
     const options = {
@@ -29,7 +48,12 @@
 </script>
 
 <div id="sqleditor">
-    <Monaco bind:value={query} {options} height="100%" />
+    <Monaco
+        bind:value={query}
+        {options}
+        height="100%"
+        on:ready={handleEditorMount}
+    />
 </div>
 
 <style>

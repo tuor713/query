@@ -328,6 +328,7 @@
                 <QueryEditor
                     bind:query={activeTab.query}
                     bind:language={activeTab.language}
+                    onExecute={execute}
                 />
             </div>
 
