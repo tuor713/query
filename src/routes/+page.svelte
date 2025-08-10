@@ -19,10 +19,12 @@
         ResultViewer,
         MosaicViewer,
         TabContainer,
+        ChatComponent,
     } from "$lib";
 
     import { MalloyRenderer } from "@malloydata/render";
     import { API } from "@malloydata/malloy";
+    import { Bot, Database } from "@lucide/svelte";
 
     // Services
     const storageService = new StorageService();
@@ -38,6 +40,7 @@
         storageService.getEnvironment() || getDefaultEnvironment(),
     );
     let sidebarCollapsed = $state(false);
+    let activeView = $state("query"); // "query" or "chat"
 
     // Initialize query from URL or local storage
     const urlParams = new URLSearchParams(window.location.search);
@@ -368,22 +371,56 @@
 {/snippet}
 
 {#if loggedIn}
-    <div class="container">
-        <SavedQueriesSidebar
-            {savedQueries}
-            currentQueryName={getActiveTab()?.queryName || ""}
-            onQuerySelected={loadSavedQuery}
-            onQueryDeleted={deleteSavedQuery}
-            isCollapsed={sidebarCollapsed}
-            onToggle={toggleSidebar}
-        />
+    <div class="app-container">
+        <header>
+            <h1>Trino Data Explorer</h1>
+            <div class="header-nav">
+                <div class="nav-tabs">
+                    <button
+                        class="nav-tab {activeView === 'query' ? 'active' : ''}"
+                        onclick={() => (activeView = "query")}
+                    >
+                        <Database size="1em" /> Query Explorer
+                    </button>
+                    <button
+                        class="nav-tab {activeView === 'chat' ? 'active' : ''}"
+                        onclick={() => (activeView = "chat")}
+                    >
+                        <Bot size="1em" /> AI Chat
+                    </button>
+                </div>
+            </div>
+        </header>
 
-        <div id="content">
-            <TabContainer bind:tabs bind:activeTabId>
-                {#each tabs as tab}
-                    {@render children(tab, tab.id === activeTabId)}
-                {/each}
-            </TabContainer>
+        <div class="container">
+            {#if activeView === "query"}
+                <SavedQueriesSidebar
+                    {savedQueries}
+                    currentQueryName={getActiveTab()?.queryName || ""}
+                    onQuerySelected={loadSavedQuery}
+                    onQueryDeleted={deleteSavedQuery}
+                    isCollapsed={sidebarCollapsed}
+                    onToggle={toggleSidebar}
+                />
+
+                <div id="content">
+                    <TabContainer bind:tabs bind:activeTabId>
+                        {#each tabs as tab}
+                            {@render children(tab, tab.id === activeTabId)}
+                        {/each}
+                    </TabContainer>
+                </div>
+            {:else}
+                <div id="chat-content">
+                    <ChatComponent
+                        {username}
+                        {password}
+                        {extraCredentials}
+                        {selectedEnvironment}
+                        {queryService}
+                    />
+                </div>
+            {/if}
         </div>
     </div>
 {:else}
@@ -395,11 +432,47 @@
         margin: 0;
     }
 
+    .app-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: Inter, ui-sans-serif;
+        padding: 0.5rem 2rem;
+        background: white;
+        border-bottom: 1px solid #e0e0e0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        height: 45px;
+        box-sizing: border-box;
+    }
+
+    header h1 {
+        margin: 0;
+        color: #333;
+        font-size: 1.25rem;
+    }
+
+    .header-nav {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .user-info {
+        color: #666;
+        font-weight: 500;
+    }
+
     #content {
         display: flex;
         flex-direction: column;
         flex-grow: 1;
-        height: 95vh;
+        height: calc(100vh - 45px);
         margin-top: 1em;
         margin-left: 2em;
         margin-right: 2em;
@@ -418,8 +491,53 @@
 
     .container {
         display: flex;
-        min-height: 100vh;
+        flex: 1;
         max-width: 100vw;
         position: relative;
+    }
+
+    .nav-tabs {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .nav-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: #f5f5f5;
+        color: #666;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            background-color 0.2s ease,
+            color 0.2s ease;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+    .nav-tab:hover {
+        transform: translateY(-1px);
+        background: #e0e0e0;
+    }
+
+    .nav-tab.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    #chat-content {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        height: calc(100vh - 45px);
+        margin-top: 1em;
+        margin-left: 2em;
+        margin-right: 2em;
     }
 </style>

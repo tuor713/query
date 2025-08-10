@@ -12,7 +12,7 @@
 </script>
 
 <div class="sidebar" class:collapsed={isCollapsed} id="sidebar">
-    <h2>
+    <h3>
         {#if isCollapsed}
             <Book onclick={onToggle} />
         {:else}
@@ -26,7 +26,7 @@
                 <X />
             </button>
         {/if}
-    </h2>
+    </h3>
     <ul>
         {#each savedQueries as query}
             <li class="query-item">
@@ -76,8 +76,7 @@
         padding: 20px 5px;
     }
 
-    .sidebar.collapsed .label,
-    .sidebar.collapsed .icon {
+    .sidebar.collapsed .label {
         display: none;
     }
 
@@ -91,7 +90,7 @@
         box-sizing: border-box;
     }
 
-    .sidebar h2 {
+    .sidebar h3 {
         margin-bottom: 20px;
         white-space: nowrap;
         display: flex;
@@ -141,7 +140,9 @@
         border-radius: 2px;
         color: #666;
         opacity: 0;
-        transition: opacity 0.3s, background-color 0.2s;
+        transition:
+            opacity 0.3s,
+            background-color 0.2s;
         flex-shrink: 0;
         display: flex;
         align-items: center;
