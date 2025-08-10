@@ -9,6 +9,7 @@
     } = $props();
 
     let monaco = $state.raw(null);
+    let editor = $state.raw(null);
 
     import loader from "@monaco-editor/loader";
     loader.init().then(async (monacoInstance) => {
@@ -17,12 +18,13 @@
         monaco.languages.setMonarchTokensProvider("malloy", monarch);
     });
 
-    function handleEditorMount(editor) {
+    function handleEditorMount() {
         // Add Ctrl+Enter keyboard shortcut for executing queries
         if (monaco) {
             editor.addCommand(
                 monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
                 () => {
+                    console.log("Monaco onExecute");
                     if (onExecute) {
                         onExecute();
                     }
@@ -51,6 +53,7 @@
     <Monaco
         bind:value={query}
         {options}
+        bind:editor
         height="100%"
         on:ready={handleEditorMount}
     />
