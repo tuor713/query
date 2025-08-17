@@ -94,13 +94,13 @@ height: 600`);
                 <Monaco bind:value={spec} options={editorOptions} />
             </div>
             <div>
-                <button on:click={() => reloadLayout()}>Apply</button>
-                <button on:click={() => (expanded = false)}>Hide</button>
+                <button onclick={() => reloadLayout()}>Apply</button>
+                <button onclick={() => (expanded = false)}>Hide</button>
             </div>
         </div>
     {:else}
         <div>
-            <button on:click={() => (expanded = true)}
+            <button onclick={() => (expanded = true)}
                 ><Pencil size="1em" style="vertical-align: middle;" /></button
             >
         </div>

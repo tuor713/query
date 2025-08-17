@@ -89,12 +89,6 @@
         margin-bottom: 1em;
     }
 
-    .loginh1 {
-        padding-bottom: 0.5em;
-        font-size: 30px;
-        font-weight: bold;
-    }
-
     #login {
         margin-top: 3em;
         display: flex;
