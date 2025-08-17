@@ -38,7 +38,7 @@
     <div>
         <h1>Trino Data Explorer</h1>
         <div class="logintitle">
-            <h3>Login<span>&nbsp;&nbsp;(Windows)</span></h3>
+            <h3>Login</h3>
         </div>
         <input
             type="text"
@@ -48,7 +48,7 @@
         />
         <input
             type="password"
-            placeholder="password"
+            placeholder="Windows password"
             bind:value={password}
             onkeydown={handleKeyDown}
         />

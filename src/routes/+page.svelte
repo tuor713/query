@@ -475,7 +475,8 @@
         display: flex;
         flex-direction: column;
         flex-grow: 1;
-        height: calc(100vh - 45px);
+        /* should be 45 but for some reason that gives a scrollbar */
+        height: calc(100vh - 60px);
         margin-top: 1em;
         margin-left: 2em;
         margin-right: 2em;
