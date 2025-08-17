@@ -14,6 +14,7 @@ export { default as ChatComponent } from "./components/ChatComponent.svelte";
 export { initializePerspective } from "./services/PerspectiveInitializer.js";
 export { QueryService } from "./services/QueryService.js";
 export { StorageService } from "./services/StorageService.js";
+export { AIService } from "./services/AIService.js";
 export { runMalloyQuery } from "./services/MalloyService.js";
 
 // Config

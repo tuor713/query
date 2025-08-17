@@ -10,6 +10,17 @@ import trino
 from trino.auth import BasicAuthentication
 import json
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
+from llm_factory import UniversalLLM, get_available_functions
+
 def convertToRows(cols, tuples):
     rows = []
     for t in tuples:
@@ -115,7 +126,7 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
                 for cred in extraCredentials:
                     tuplifiedExtraCredentials.append((cred[0], cred[1]))
 
-            print(f"Serving query: {query} from user {user} with format {format}")
+            logger.info(f"Serving query: {query} from user {user} with format {format}")
 
             if format == 'arrow':
                 arrow_bytes = await self.execute_query_arrow(
@@ -134,12 +145,76 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
                 self.write(json_data)
 
         except Exception as e:
-            print(e)
+            logger.error(e)
             self.set_status(500)
             self.write({"error": str(e)})
 
+
+class AIHandler(tornado.web.RequestHandler):
+    executor = ThreadPoolExecutor(max_workers=4)
+
+    def initialize(self):
+        # Use UniversalLLM which will automatically choose provider based on environment
+        self.llm = UniversalLLM(provider='ollama')
+        logger.info(f"Initialized LLM with provider: {self.llm.get_provider()}, model: {self.llm.get_model_name()}")
+
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        self.set_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+    @run_on_executor
+    def execute_chat_completion(self, messages, functions):
+        """Execute chat completion - runs on executor thread"""
+        return self.llm.chat_complete(messages, functions)
+
+    async def post(self):
+        try:
+            request_data = json.loads(self.request.body)
+
+            # Extract required parameters
+            messages = request_data.get('messages', [])
+
+            logger.info(f"Chat completion request: {messages}")
+
+            if not messages:
+                raise ValueError("Missing required 'messages' parameter")
+
+            # Get available functions
+            functions = get_available_functions()
+
+            # Call LLM with functions (now runs on executor)
+            llm_response = await self.execute_chat_completion(messages, functions)
+
+            if not llm_response.get('success'):
+                self.set_status(500)
+                self.write({"error": llm_response.get('error', 'Unknown LLM error')})
+                return
+
+            response_data = {
+                "response": llm_response.get('response', ''),
+                "model": llm_response.get('model', 'unknown'),
+                "function_call": llm_response.get('function_call'),
+            }
+
+            logger.info(f"Chat completion response: {response_data}")
+
+            self.set_header('Content-Type', 'application/json')
+            self.write(response_data)
+
+        except Exception as e:
+            print(f"AI Handler error: {e}")
+            self.set_status(500)
+            self.write({"error": str(e)})
+
+
 app = tornado.web.Application([
     (r"/trino", TrinoArrowHandler),
+    (r"/ai/chat", AIHandler),
     (r"/(.*)", tornado.web.StaticFileHandler, {"path":"./", "default_filename":"sql2.html"}),
 ])
 

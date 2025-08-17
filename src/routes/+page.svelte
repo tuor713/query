@@ -5,6 +5,7 @@
         initializePerspective,
         QueryService,
         StorageService,
+        AIService,
 
         // Config
         getDefaultEnvironment,
@@ -29,6 +30,7 @@
     // Services
     const storageService = new StorageService();
     const queryService = new QueryService();
+    const aiService = new AIService();
 
     // State
     let username = $state(storageService.getUsername());
@@ -386,7 +388,7 @@
                         class="nav-tab {activeView === 'chat' ? 'active' : ''}"
                         onclick={() => (activeView = "chat")}
                     >
-                        <Bot size="1em" /> AI Chat
+                        <Bot size="1em" /> AI Chat <i>(alpha)</i>
                     </button>
                 </div>
             </div>
@@ -418,6 +420,7 @@
                         {extraCredentials}
                         {selectedEnvironment}
                         {queryService}
+                        {aiService}
                     />
                 </div>
             {/if}

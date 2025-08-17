@@ -1,6 +1,8 @@
 <script>
     import { onMount } from "svelte";
-    import { Send } from "@lucide/svelte";
+    import { Send, Pause } from "@lucide/svelte";
+    import ResultViewer from "./ResultViewer.svelte";
+    import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
 
     let {
         username = "",
@@ -8,12 +10,14 @@
         extraCredentials = [],
         selectedEnvironment,
         queryService,
+        aiService,
     } = $props();
 
     let messages = $state([]);
     let currentMessage = $state("");
     let isLoading = $state(false);
     let chatContainer;
+    let resultViewerInstances = $state({});
 
     onMount(() => {
         scrollToBottom();
@@ -23,6 +27,10 @@
         if (chatContainer) {
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+    }
+
+    function cancelRequest() {
+        isLoading = false;
     }
 
     async function sendMessage() {
@@ -36,25 +44,13 @@
         };
 
         messages = [...messages, userMessage];
-        const messageToProcess = currentMessage;
         currentMessage = "";
         isLoading = true;
 
         setTimeout(scrollToBottom, 10);
 
         try {
-            const aiResponse = await processMessageWithAI(messageToProcess);
-
-            const aiMessage = {
-                id: Date.now() + 1,
-                type: "ai",
-                content: aiResponse.text,
-                data: aiResponse.data,
-                query: aiResponse.query,
-                timestamp: new Date(),
-            };
-
-            messages = [...messages, aiMessage];
+            await processAIConversation(messages);
         } catch (error) {
             const errorMessage = {
                 id: Date.now() + 1,
@@ -69,17 +65,115 @@
         }
     }
 
-    async function processMessageWithAI(message) {
+    async function processAIConversation(conversationMessages, turnCount = 0) {
+        const maxTurns = 6;
+
+        if (turnCount >= maxTurns) {
+            console.log("Max AI turns reached");
+            isLoading = false;
+            return;
+        }
+
+        const aiResponse =
+            await aiService.processAIResponse(conversationMessages);
+        console.log(`AI response (turn ${turnCount + 1}):`, aiResponse);
+
+        // If response is empty, stop the conversation
         if (
-            message.toLowerCase().includes("query") ||
-            message.toLowerCase().includes("sql")
+            isLoading &&
+            !aiResponse.text?.trim() &&
+            !aiResponse.function_call
         ) {
-            const sampleQuery = `SELECT * FROM sample_table WHERE condition LIKE '%${message}%' LIMIT 10`;
+            console.log("Empty AI response, ending conversation");
+            return;
+        }
+
+        const aiMessage = {
+            id: Date.now() + turnCount + 1,
+            type: "ai",
+            content: aiResponse.text,
+            function_call: aiResponse.function_call,
+            timestamp: new Date(),
+        };
+
+        // If there's a function call, add the query to the AI message
+        if (
+            aiResponse.function_call &&
+            aiResponse.function_call.name === "execute_sql_query"
+        ) {
+            aiMessage.query = aiResponse.function_call.arguments.query;
+        }
+
+        messages = [...messages, aiMessage];
+        setTimeout(scrollToBottom, 10);
+
+        // Handle function calls
+        if (aiResponse.function_call) {
+            const toolResult = await handleFunctionCall(
+                aiResponse.function_call,
+                aiMessage.id,
+            );
+
+            // Add the tool result to the conversation context and continue
+            if (isLoading && toolResult) {
+                const updatedMessages = [...messages];
+                // Continue the conversation with the tool result included
+                await processAIConversation(updatedMessages, turnCount + 1);
+            }
+        } else if (aiResponse.text?.trim()) {
+            // If there's text content but no function call,
+            // we can optionally continue the conversation
+            // For now, we'll stop here unless the AI explicitly asks for more
+            console.log(
+                "AI provided text response, conversation turn complete",
+            );
+        }
+    }
+
+    async function handleFunctionCall(functionCall, messageId) {
+        const { name, arguments: args } = functionCall;
+        let toolResult = null;
+
+        if (name === "execute_sql_query") {
+            // Validate that the query only contains SELECT statements
+            console.log("Processing query", args.query);
+            const validation = isSelectOnlyQuery(args.query);
+
+            // Create tool message for the function execution
+            const toolMessageId = Date.now() + 2;
+
+            if (!validation.valid) {
+                // Add tool message with validation error
+                const toolMessage = {
+                    id: toolMessageId,
+                    type: "tool",
+                    content: "",
+                    query: args.query,
+                    queryError: `Query validation failed: ${validation.error}`,
+                    isExecuting: false,
+                    timestamp: new Date(),
+                };
+                messages = [...messages, toolMessage];
+                setTimeout(scrollToBottom, 10);
+                return { error: validation.error };
+            }
+
+            // Add tool message showing it's executing
+            const toolMessage = {
+                id: toolMessageId,
+                type: "tool",
+                content: "",
+                query: args.query,
+                isExecuting: true,
+                timestamp: new Date(),
+            };
+            messages = [...messages, toolMessage];
+            setTimeout(scrollToBottom, 10);
 
             try {
                 const result = await queryService.executeQuery(
-                    sampleQuery,
-                    1000,
+                    args.query,
+                    args.limit || 100000,
                     username,
                     password,
                     selectedEnvironment,
@@ -87,25 +181,58 @@
                     extraCredentials,
                 );
 
-                return {
-                    text: `I've executed a query based on your request. Here's what I found:`,
-                    query: sampleQuery,
-                    data: result.success ? result.data : null,
-                };
+                if (isLoading && result.success) {
+                    // Update the tool message with the result
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  queryResult: result.data,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    // Load data into perspective viewer after DOM update
+                    setTimeout(async () => {
+                        const viewer = resultViewerInstances[toolMessageId];
+                        if (viewer && result.data) {
+                            await viewer.loadData(result.data);
+                        }
+                    }, 100);
+
+                    toolResult = { success: true, data: result.data };
+                } else {
+                    // Update the tool message with error
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  queryError: result.error,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { error: result.error };
+                }
             } catch (error) {
-                return {
-                    text: `I generated this query for you, but couldn't execute it: ${error.message}`,
-                    query: sampleQuery,
-                    data: null,
-                };
+                console.error("Error executing query:", error);
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              queryError: error.message,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
             }
+
+            setTimeout(scrollToBottom, 10);
         }
 
-        return {
-            text: `I understand you're asking about: "${message}". I can help you query and analyze your data. Try asking me to "run a query" or describe what data you're looking for.`,
-            data: null,
-            query: null,
-        };
+        return toolResult;
     }
 
     function handleKeyDown(e) {
@@ -141,7 +268,11 @@
                     <span class="sender"
                         >{message.type === "user"
                             ? "You"
-                            : "AI Assistant"}</span
+                            : message.type === "tool"
+                              ? "Tool Response"
+                              : message.function_call
+                                ? `AI Assistant: Tool ${message.function_call.name}`
+                                : "AI Assistant"}</span
                     >
                     <span class="timestamp"
                         >{message.timestamp.toLocaleTimeString()}</span
@@ -151,9 +282,37 @@
                     {message.content}
 
                     {#if message.query}
-                        <div class="query-block">
-                            <strong>Generated Query:</strong>
-                            <pre><code>{message.query}</code></pre>
+                        <pre><code>{message.query}</code></pre>
+                    {/if}
+
+                    {#if message.type === "tool"}
+                        <div class="tool-result">
+                            {#if message.isExecuting}
+                                <div class="query-loading">
+                                    <div class="typing-indicator">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                    <span>Executing query...</span>
+                                </div>
+                            {:else if message.queryResult}
+                                <ResultViewer
+                                    bind:this={
+                                        resultViewerInstances[message.id]
+                                    }
+                                    perspectiveConfig={{
+                                        columns: [],
+                                        plugin: "datagrid",
+                                        plugin_config: { edit_mode: "EDIT" },
+                                    }}
+                                    id={`chat-result-${message.id}`}
+                                />
+                            {:else if message.queryError}
+                                <div class="query-error">
+                                    <pre><code>{message.queryError}</code></pre>
+                                </div>
+                            {/if}
                         </div>
                     {/if}
 
@@ -161,7 +320,18 @@
                         <div class="data-preview">
                             <strong>Data Preview:</strong>
                             <div class="data-info">
-                                Found {message.data.numRows || 0} rows
+                                {#if message.data.success}
+                                    Found {message.data.numRows || 0} rows
+                                    {#if message.data.columns}
+                                        <div class="columns-info">
+                                            Columns: {message.data.columns.join(
+                                                ", ",
+                                            )}
+                                        </div>
+                                    {/if}
+                                {:else}
+                                    Error: {message.data.error}
+                                {/if}
                             </div>
                         </div>
                     {/if}
@@ -189,15 +359,20 @@
     <div class="chat-input">
         <textarea
             bind:value={currentMessage}
-            on:keydown={handleKeyDown}
+            onkeydown={handleKeyDown}
             placeholder="Ask me anything about your data..."
             rows="3"
         ></textarea>
         <button
-            on:click={sendMessage}
-            disabled={!currentMessage.trim() || isLoading}
+            onclick={isLoading ? cancelRequest : sendMessage}
+            disabled={currentMessage.trim() === "" && !isLoading}
+            type="submit"
         >
-            <Send />
+            {#if isLoading}
+                <Pause />
+            {:else}
+                <Send />
+            {/if}
         </button>
     </div>
 </div>
@@ -242,22 +417,26 @@
     }
 
     .message {
-        max-width: 80%;
+        width: 95%;
         padding: 1rem 1.5rem;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .message.user {
-        align-self: flex-end;
         background: #667eea;
         color: white;
     }
 
     .message.ai {
-        align-self: flex-start;
         background: white;
         color: #333;
+    }
+
+    .message.tool {
+        background: #f8f9fa;
+        color: #495057;
+        border: 1px solid #dee2e6;
     }
 
     .message-header {
@@ -303,6 +482,46 @@
         margin-top: 0.5rem;
         font-size: 0.9rem;
         color: #2e7d32;
+    }
+
+    .columns-info {
+        margin-top: 0.25rem;
+        font-size: 0.8rem;
+        color: #4caf50;
+        font-style: italic;
+    }
+
+    .tool-result {
+        margin-top: 0.5rem;
+    }
+
+    .tool-result :global(.resultviewer) {
+        min-height: 400px;
+        max-height: 600px;
+    }
+
+    .query-loading {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        color: #667eea;
+        font-size: 0.9rem;
+    }
+
+    .query-error {
+        padding: 1rem;
+        background: #fee;
+        border-radius: 8px;
+        border-left: 4px solid #dc3545;
+    }
+
+    .query-error pre {
+        margin: 0;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+        color: #dc3545;
     }
 
     .typing-indicator {
