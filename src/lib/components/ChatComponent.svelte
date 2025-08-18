@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-    import { Send, Pause } from "@lucide/svelte";
+    import { Send, Pause, MessageSquarePlus } from "@lucide/svelte";
     import ResultViewer from "./ResultViewer.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
 
@@ -31,6 +31,13 @@
 
     function cancelRequest() {
         isLoading = false;
+    }
+
+    function newChat() {
+        messages = [];
+        isLoading = false;
+        currentMessage = "";
+        resultViewerInstances = {};
     }
 
     async function sendMessage() {
@@ -89,7 +96,7 @@
         }
 
         const aiMessage = {
-            id: Date.now() + turnCount + 1,
+            id: Date.now() + 2 * turnCount + 1,
             type: "ai",
             content: aiResponse.text,
             function_call: aiResponse.function_call,
@@ -139,8 +146,7 @@
             console.log("Processing query", args.query);
             const validation = isSelectOnlyQuery(args.query);
 
-            // Create tool message for the function execution
-            const toolMessageId = Date.now() + 2;
+            const toolMessageId = messageId + 1;
 
             if (!validation.valid) {
                 // Add tool message with validation error
@@ -373,6 +379,9 @@
             {:else}
                 <Send />
             {/if}
+        </button>
+        <button onclick={newChat} type="submit">
+            <MessageSquarePlus />
         </button>
     </div>
 </div>

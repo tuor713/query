@@ -52,7 +52,7 @@ export class AIService {
         role: "system",
         content: `You are a helpful AI assistant that can analyze data and run SQL queries.
           When users ask about data or request queries, use the "execute_sql_query" function to run the appropriate SQL query.
-          You can take multiple turns to answer the user's question. When data has been retrieved successfully, respond with an empty message or 'STOP'.
+          You can take multiple turns to answer the user's question. When data has been retrieved successfully (non-zero rows retrieved succesfully), respond with an empty message or 'STOP'.
           The user will be able to see the full results of the query.
 
           - DO NOT generate data modification queries (INSERT, DELETE, DROP, UPDATE, TRUNCATE, etc.)
@@ -113,7 +113,12 @@ export class AIService {
           .map((field) => field.name)
           .join("|");
 
-        return "Schema: " + header + "\nRows: " + arrowTable.numRows;
+        return (
+          "Query successful.\n\n- Schema: " +
+          header +
+          "\n- Rows: " +
+          arrowTable.numRows
+        );
       }
 
       return "Query executed successfully";
@@ -131,11 +136,10 @@ export class AIService {
         const header = arrowTable.schema.fields
           .map((field) => field.name)
           .join("|");
-        console.log(header);
         const rows = arrowTable.toArray().map((row) => {
           return row.toArray().join("|");
         });
-        return [header, ...rows].join("\n");
+        return "Query successful:\n\n" + [header, ...rows].join("\n");
       }
 
       return "Query executed successfully";

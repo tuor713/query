@@ -466,11 +466,6 @@
         gap: 1.5rem;
     }
 
-    .user-info {
-        color: #666;
-        font-weight: 500;
-    }
-
     #content {
         display: flex;
         flex-direction: column;
