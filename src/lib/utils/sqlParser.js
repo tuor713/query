@@ -124,8 +124,12 @@ export function isSpecialCommand(query) {
  */
 export function isSelectOnlyQuery(query) {
   try {
-    // Handle special case for DESCRIBE, which parser doesn't handle
-    if (query.toUpperCase().startsWith("DESCRIBE ") && !query.includes(";")) {
+    // Handle special case for DESCRIBE / SHOW, which parser doesn't handle
+    if (
+      (query.toUpperCase().startsWith("DESCRIBE ") ||
+        query.toUpperCase().startsWith("SHOW ")) &&
+      !query.includes(";")
+    ) {
       return { valid: true };
     }
 
