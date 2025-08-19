@@ -418,7 +418,6 @@
                         {username}
                         {password}
                         {extraCredentials}
-                        {selectedEnvironment}
                         {queryService}
                         {aiService}
                     />

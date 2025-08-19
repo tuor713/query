@@ -2,16 +2,23 @@
     import { onMount } from "svelte";
     import { Send, Pause, MessageSquarePlus } from "@lucide/svelte";
     import ResultViewer from "./ResultViewer.svelte";
+    import EnvironmentSelector from "./EnvironmentSelector.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
+    import { getDefaultEnvironment } from "$lib/config/environments.js";
+    import { StorageService } from "$lib";
 
     let {
         username = "",
         password = "",
         extraCredentials = [],
-        selectedEnvironment,
         queryService,
         aiService,
     } = $props();
+
+    const storageService = new StorageService();
+    let selectedEnvironment = $state(
+        storageService.getEnvironment() || getDefaultEnvironment(),
+    );
 
     let messages = $state([]);
     let currentMessage = $state("");
@@ -38,6 +45,11 @@
         isLoading = false;
         currentMessage = "";
         resultViewerInstances = {};
+    }
+
+    function handleEnvironmentChange(newEnvironment) {
+        selectedEnvironment = newEnvironment;
+        storageService.saveEnvironment(selectedEnvironment);
     }
 
     async function sendMessage() {
@@ -383,6 +395,13 @@
         <button onclick={newChat} type="submit">
             <MessageSquarePlus />
         </button>
+        <div class="environment-selector-wrapper">
+            <label>Environment:</label>
+            <EnvironmentSelector
+                bind:selectedEnvironment
+                onChange={handleEnvironmentChange}
+            />
+        </div>
     </div>
 </div>
 
@@ -394,6 +413,18 @@
         font-family: Inter, ui-sans-serif;
         background: #fafafa;
         height: 100%;
+    }
+
+    .environment-selector-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .environment-selector-wrapper label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #555;
     }
 
     .chat-messages {
