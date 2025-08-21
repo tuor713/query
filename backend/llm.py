@@ -66,7 +66,7 @@ class OllamaLLM:
 
             return {
                 "success": True,
-                "response": response_text,
+                "text": response_text,
                 "function_call": function_call,
                 "model": self.model,
                 "raw_message": message  # Include full message for debugging

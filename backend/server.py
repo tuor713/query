@@ -196,7 +196,7 @@ class AIHandler(tornado.web.RequestHandler):
                 return
 
             response_data = {
-                "response": llm_response.get('response', ''),
+                "text": llm_response.get('text', ''),
                 "model": llm_response.get('model', 'unknown'),
                 "function_call": llm_response.get('function_call'),
             }
