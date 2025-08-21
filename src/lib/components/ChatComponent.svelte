@@ -1,6 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { Send, Pause, MessageSquarePlus } from "@lucide/svelte";
+    import { marked } from "marked";
     import ResultViewer from "./ResultViewer.svelte";
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
@@ -297,7 +298,11 @@
                     >
                 </div>
                 <div class="message-content">
-                    {message.content}
+                    {#if message.type === "ai"}
+                        {@html marked(message.content || "")}
+                    {:else}
+                        {message.content}
+                    {/if}
 
                     {#if message.query}
                         <pre><code>{message.query}</code></pre>
@@ -493,6 +498,113 @@
 
     .message-content {
         line-height: 1.5;
+    }
+
+    /* Markdown styling for AI messages */
+    .message.ai .message-content :global(h1),
+    .message.ai .message-content :global(h2),
+    .message.ai .message-content :global(h3),
+    .message.ai .message-content :global(h4),
+    .message.ai .message-content :global(h5),
+    .message.ai .message-content :global(h6) {
+        margin-top: 1em;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+    }
+
+    .message.ai .message-content :global(h1) {
+        font-size: 1.5em;
+    }
+
+    .message.ai .message-content :global(h2) {
+        font-size: 1.3em;
+    }
+
+    .message.ai .message-content :global(h3) {
+        font-size: 1.1em;
+    }
+
+    .message.ai .message-content :global(p) {
+        margin-bottom: 0.8em;
+    }
+
+    .message.ai .message-content :global(ul),
+    .message.ai .message-content :global(ol) {
+        margin-left: 1.5em;
+        margin-bottom: 0.8em;
+    }
+
+    .message.ai .message-content :global(li) {
+        margin-bottom: 0.3em;
+    }
+
+    .message.ai .message-content :global(pre) {
+        background-color: #f1f1f1;
+        border-radius: 4px;
+        padding: 12px;
+        margin: 0.8em 0;
+        overflow-x: auto;
+    }
+
+    .message.ai .message-content :global(code) {
+        background-color: #f1f1f1;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+        font-size: 0.9em;
+    }
+
+    .message.ai .message-content :global(pre code) {
+        background-color: transparent;
+        padding: 0;
+    }
+
+    .message.ai .message-content :global(blockquote) {
+        border-left: 3px solid rgba(255, 255, 255, 0.3);
+        margin-left: 0;
+        padding-left: 1em;
+        font-style: italic;
+    }
+
+    .message.ai .message-content :global(a) {
+        color: #4a9eff;
+        text-decoration: none;
+    }
+
+    .message.ai .message-content :global(a:hover) {
+        text-decoration: underline;
+    }
+
+    .message.ai .message-content :global(table) {
+        border-collapse: collapse;
+        margin: 0.8em 0;
+        width: 100%;
+    }
+
+    .message.ai .message-content :global(th),
+    .message.ai .message-content :global(td) {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 8px 12px;
+        text-align: left;
+    }
+
+    .message.ai .message-content :global(th) {
+        background-color: rgba(255, 255, 255, 0.05);
+        font-weight: 600;
+    }
+
+    .message.ai .message-content :global(hr) {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 1.5em 0;
+    }
+
+    .message.ai .message-content :global(strong) {
+        font-weight: 600;
+    }
+
+    .message.ai .message-content :global(em) {
+        font-style: italic;
     }
 
     .query-block {

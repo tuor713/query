@@ -23,11 +23,7 @@
     "typescript": "^5.0.0",
     "vite": "^6.2.5",
     "vite-plugin-node-polyfills": "^0.23.0",
-    "vitest": "^3.2.4",
-    "@uwdata/mosaic-core": "^0.18.0",
-    "@uwdata/mosaic-spec": "^0.18.0",
-    "@uwdata/vgplot": "^0.18.0",
-    "yaml": "^2.8.0"
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@codemirror/lang-sql": "^6.8.0",
@@ -40,8 +36,13 @@
     "@malloydata/malloy": "0.0.304",
     "@malloydata/render": "0.0.304",
     "@malloydata/syntax-highlight": "0.0.304",
+    "@uwdata/mosaic-core": "^0.18.0",
+    "@uwdata/mosaic-spec": "^0.18.0",
+    "@uwdata/vgplot": "^0.18.0",
+    "marked": "^16.2.0",
     "monaco-editor": "^0.52.2",
     "node-sql-parser": "^5.3.10",
-    "svelte-monaco": "^1.0.4"
+    "svelte-monaco": "^1.0.4",
+    "yaml": "^2.8.0"
   }
 }
