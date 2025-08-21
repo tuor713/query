@@ -101,7 +101,7 @@
         // If response is empty, stop the conversation
         if (
             isLoading &&
-            !aiResponse.text?.trim() &&
+            (!aiResponse.text?.trim() || aiResponse.text === "STOP") &&
             !aiResponse.function_call
         ) {
             console.log("Empty AI response, ending conversation");
@@ -116,19 +116,23 @@
             timestamp: new Date(),
         };
 
-        // If there's a function call, add the query to the AI message
-        if (
-            aiResponse.function_call &&
-            aiResponse.function_call.name === "execute_sql_query"
-        ) {
-            aiMessage.query = aiResponse.function_call.arguments.query;
-        }
-
         messages = [...messages, aiMessage];
         setTimeout(scrollToBottom, 10);
 
         // Handle function calls
         if (aiResponse.function_call) {
+            // Add function name for search and retrieve_doc calls
+            if (aiResponse.function_call.name === "search") {
+                aiMessage.function_name = "search";
+                aiMessage.search_query =
+                    aiResponse.function_call.arguments.query;
+            } else if (aiResponse.function_call.name === "retrieve_doc") {
+                aiMessage.function_name = "retrieve_doc";
+                aiMessage.doc_id = aiResponse.function_call.arguments.doc_id;
+            } else if (aiResponse.function_call.name === "execute_sql_query") {
+                aiMessage.query = aiResponse.function_call.arguments.query;
+            }
+
             const toolResult = await handleFunctionCall(
                 aiResponse.function_call,
                 aiMessage.id,
@@ -154,7 +158,129 @@
         const { name, arguments: args } = functionCall;
         let toolResult = null;
 
-        if (name === "execute_sql_query") {
+        if (name === "search") {
+            const toolMessageId = messageId + 1;
+
+            // Add tool message showing it's executing
+            const toolMessage = {
+                id: toolMessageId,
+                type: "tool",
+                function_name: "search",
+                content: "",
+                search_query: args.query,
+                isExecuting: true,
+                timestamp: new Date(),
+            };
+            messages = [...messages, toolMessage];
+            setTimeout(scrollToBottom, 10);
+
+            try {
+                const result = await aiService.search(args.query);
+
+                if (isLoading && result.success) {
+                    // Update the tool message with the result
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  content: result.content,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { success: true, content: result.content };
+                } else {
+                    // Update the tool message with error
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  content: `Error: ${result.error}`,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { error: result.error };
+                }
+            } catch (error) {
+                console.error("Error executing search:", error);
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              content: `Error: ${error.message}`,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+                toolResult = { error: error.message };
+            }
+
+            setTimeout(scrollToBottom, 10);
+        } else if (name === "retrieve_doc") {
+            const toolMessageId = messageId + 1;
+
+            // Add tool message showing it's executing
+            const toolMessage = {
+                id: toolMessageId,
+                type: "tool",
+                function_name: "retrieve_doc",
+                content: "",
+                doc_id: args.doc_id,
+                isExecuting: true,
+                timestamp: new Date(),
+            };
+            messages = [...messages, toolMessage];
+            setTimeout(scrollToBottom, 10);
+
+            try {
+                const result = await aiService.retrieveDoc(args.doc_id);
+
+                if (isLoading && result.success) {
+                    // Update the tool message with the result
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  content: result.content,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { success: true, content: result.content };
+                } else {
+                    // Update the tool message with error
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  content: `Error: ${result.error}`,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { error: result.error };
+                }
+            } catch (error) {
+                console.error("Error retrieving document:", error);
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              content: `Error: ${error.message}`,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+                toolResult = { error: error.message };
+            }
+
+            setTimeout(scrollToBottom, 10);
+        } else if (name === "execute_sql_query") {
             // Validate that the query only contains SELECT statements
             console.log("Processing query", args.query);
             const validation = isSelectOnlyQuery(args.query);
@@ -166,6 +292,7 @@
                 const toolMessage = {
                     id: toolMessageId,
                     type: "tool",
+                    function_name: "execute_sql_query",
                     content: "",
                     query: args.query,
                     queryError: `Query validation failed: ${validation.error}`,
@@ -181,6 +308,7 @@
             const toolMessage = {
                 id: toolMessageId,
                 type: "tool",
+                function_name: "execute_sql_query",
                 content: "",
                 query: args.query,
                 isExecuting: true,
@@ -288,7 +416,7 @@
                         >{message.type === "user"
                             ? "You"
                             : message.type === "tool"
-                              ? "Tool Response"
+                              ? `Tool Response: ${message.function_name || "unknown"}`
                               : message.function_call
                                 ? `AI Assistant: Tool ${message.function_call.name}`
                                 : "AI Assistant"}</span
@@ -300,12 +428,26 @@
                 <div class="message-content">
                     {#if message.type === "ai"}
                         {@html marked(message.content || "")}
-                    {:else}
+                    {:else if message.type !== "tool"}
                         {message.content}
                     {/if}
 
                     {#if message.query}
                         <pre><code>{message.query}</code></pre>
+                    {/if}
+
+                    {#if message.search_query}
+                        <div class="function-args">
+                            <strong>Search Query:</strong>
+                            {message.search_query}
+                        </div>
+                    {/if}
+
+                    {#if message.doc_id}
+                        <div class="function-args">
+                            <strong>Document ID:</strong>
+                            {message.doc_id}
+                        </div>
                     {/if}
 
                     {#if message.type === "tool"}
@@ -317,7 +459,18 @@
                                         <span></span>
                                         <span></span>
                                     </div>
-                                    <span>Executing query...</span>
+                                    <span
+                                        >{message.function_name === "search"
+                                            ? "Searching..."
+                                            : message.function_name ===
+                                                "retrieve_doc"
+                                              ? "Retrieving document..."
+                                              : "Executing query..."}</span
+                                    >
+                                </div>
+                            {:else if message.function_name === "search" || message.function_name === "retrieve_doc"}
+                                <div class="function-result">
+                                    <pre><code>{message.content}</code></pre>
                                 </div>
                             {:else if message.queryResult}
                                 <ResultViewer
@@ -641,6 +794,30 @@
         font-size: 0.8rem;
         color: #4caf50;
         font-style: italic;
+    }
+
+    .function-args {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background: #f0f8ff;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        color: #1e40af;
+    }
+
+    .function-result {
+        margin-top: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+
+    .function-result pre {
+        margin: 0;
+        padding: 1rem;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        word-break: break-word;
     }
 
     .tool-result {

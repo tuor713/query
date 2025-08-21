@@ -150,6 +150,91 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
             self.write({"error": str(e)})
 
 
+class SearchHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        self.set_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+    async def post(self):
+        try:
+            request_data = json.loads(self.request.body)
+            query = request_data.get('query', '')
+
+            logger.info(f"Search request: {query}")
+
+            sample_yaml = f"""results:
+  - title: "Trino Runtime Queries"
+    id: "runtime.queries"
+    summary: "This document discusses Trino runtime queries and related concepts"
+query: "{query}"
+total_results: 1"""
+
+            self.set_header('Content-Type', 'text/yaml')
+            self.write(sample_yaml)
+
+        except Exception as e:
+            logger.error(f"Search error: {e}")
+            self.set_status(500)
+            self.write({"error": str(e)})
+
+
+class RetrieveDocHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        self.set_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+    async def post(self):
+        try:
+            request_data = json.loads(self.request.body)
+            doc_id = request_data.get('doc_id', 'unknown')
+
+            logger.info(f"Retrieve document request: {doc_id}")
+
+            sample_content = f"""Document: {doc_id}
+
+The table `system.runtime.queries` contains information about current and recent Trino queries.
+
+Schema:
++-----------------+---------------------------+
+|Column           |Type                       |
++-----------------+---------------------------+
+|query_id         |varchar                    |
+|state            |varchar                    |
+|user             |varchar                    |
+|source           |varchar                    |
+|query            |varchar                    |
+|resource_group_id|array(varchar)             |
+|queued_time_ms   |bigint                     |
+|analysis_time_ms |bigint                     |
+|planning_time_ms |bigint                     |
+|created          |timestamp(3) with time zone|
+|started          |timestamp(3) with time zone|
+|last_heartbeat   |timestamp(3) with time zone|
+|end              |timestamp(3) with time zone|
+|error_type       |varchar                    |
+|error_code       |varchar                    |
++-----------------+---------------------------+
+"""
+
+            self.set_header('Content-Type', 'text/plain')
+            self.write(sample_content)
+
+        except Exception as e:
+            logger.error(f"Retrieve doc error: {e}")
+            self.set_status(500)
+            self.write({"error": str(e)})
+
+
 class AIHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=4)
 
@@ -215,6 +300,8 @@ class AIHandler(tornado.web.RequestHandler):
 app = tornado.web.Application([
     (r"/trino", TrinoArrowHandler),
     (r"/ai/chat", AIHandler),
+    (r"/ai/search", SearchHandler),
+    (r"/ai/retrieve_doc", RetrieveDocHandler),
     (r"/(.*)", tornado.web.StaticFileHandler, {"path":"./", "default_filename":"sql2.html"}),
 ])
 

@@ -103,5 +103,33 @@ def get_available_functions() -> List[Dict]:
                 },
                 "required": ["query"]
             }
+        },
+        {
+            "name": "search",
+            "description": "Search for dataset documentation and sample queries. Returns YAML of ranked results.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search to execute."
+                    }
+                },
+                "required": ["query"]
+            }
+        },
+        {
+            "name": "retrieve_doc",
+            "description": "Retrieve documentation by document id using document ids from the `search` function.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {
+                        "type": "string",
+                        "description": "The document id to retrieve."
+                    }
+                },
+                "required": ["doc_id"]
+            }
         }
     ]

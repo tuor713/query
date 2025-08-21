@@ -43,6 +43,74 @@ export class AIService {
   }
 
   /**
+   * Search for documents using the AI search endpoint
+   */
+  async search(query) {
+    try {
+      const response = await fetch(`${this.baseUrl}/ai/search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: query,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const yamlContent = await response.text();
+
+      return {
+        success: true,
+        content: yamlContent,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Retrieve a specific document by ID
+   */
+  async retrieveDoc(docId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/ai/retrieve_doc`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          doc_id: docId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const textContent = await response.text();
+
+      return {
+        success: true,
+        content: textContent,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Process AI response and handle function calls
    */
   async processAIResponse(chatHistory) {
@@ -93,8 +161,8 @@ export class AIService {
 
         messages.push({
           role: "tool",
-          name: "execute_sql_query",
-          content: "execute_sql_query:\n" + toolContent,
+          name: msg.function_name || "execute_sql_query",
+          content: `${msg.function_name || "execute_sql_query"}:\n` + toolContent,
         });
       }
     }
