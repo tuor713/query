@@ -17,7 +17,11 @@
             limit: 100000,
             language: "sql",
             display: "perspective",
-            perspectiveConfig: { columns: [], plugin: "datagrid" },
+            perspectiveConfig: {
+                columns: [],
+                plugin: "datagrid",
+                plugin_config: { edit_mode: "EDIT" },
+            },
             error: "",
             lastQueryTime: 0,
             executing: false,
