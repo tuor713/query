@@ -468,9 +468,13 @@
                                               : "Executing query..."}</span
                                     >
                                 </div>
-                            {:else if message.function_name === "search" || message.function_name === "retrieve_doc"}
+                            {:else if message.function_name === "search"}
                                 <div class="function-result">
                                     <pre><code>{message.content}</code></pre>
+                                </div>
+                            {:else if message.function_name === "retrieve_doc"}
+                                <div class="function-result">
+                                    {@html marked(message.content || "")}
                                 </div>
                             {:else if message.queryResult}
                                 <ResultViewer
