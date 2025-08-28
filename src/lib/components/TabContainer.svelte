@@ -1,6 +1,4 @@
 <script>
-    import { languages } from "monaco-editor";
-
     let {
         tabs = $bindable([]),
         activeTabId = $bindable(0),
