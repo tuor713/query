@@ -1,6 +1,12 @@
 <script>
     import { onMount } from "svelte";
-    import { Send, Pause, MessageSquarePlus } from "@lucide/svelte";
+    import {
+        Send,
+        Pause,
+        MessageSquarePlus,
+        ChevronDown,
+        ChevronRight,
+    } from "@lucide/svelte";
     import { marked } from "marked";
     import ResultViewer from "./ResultViewer.svelte";
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
@@ -167,6 +173,7 @@
                 type: "tool",
                 function_name: "search",
                 content: "",
+                expanded: false,
                 search_query: args.query,
                 isExecuting: true,
                 timestamp: new Date(),
@@ -228,6 +235,7 @@
                 type: "tool",
                 function_name: "retrieve_doc",
                 content: "",
+                expanded: false,
                 doc_id: args.doc_id,
                 isExecuting: true,
                 timestamp: new Date(),
@@ -297,6 +305,7 @@
                     query: args.query,
                     queryError: `Query validation failed: ${validation.error}`,
                     isExecuting: false,
+                    expanded: true,
                     timestamp: new Date(),
                 };
                 messages = [...messages, toolMessage];
@@ -311,6 +320,7 @@
                 function_name: "execute_sql_query",
                 content: "",
                 query: args.query,
+                expanded: true,
                 isExecuting: true,
                 timestamp: new Date(),
             };
@@ -388,6 +398,17 @@
             sendMessage();
         }
     }
+
+    function toggleMessageExpanded(message) {
+        messages = messages.map((msg) =>
+            msg.id === message.id
+                ? {
+                      ...msg,
+                      expanded: !message.expanded,
+                  }
+                : msg,
+        );
+    }
 </script>
 
 <div class="chat-container">
@@ -412,6 +433,21 @@
         {#each messages as message (message.id)}
             <div class="message {message.type}">
                 <div class="message-header">
+                    {#if message.type === "tool"}
+                        <button
+                            class="collapse-toggle"
+                            onclick={() => toggleMessageExpanded(message)}
+                            aria-label={message.expanded
+                                ? "Collapse"
+                                : "Expand"}
+                        >
+                            {#if message.expanded}
+                                <ChevronDown size={16} />
+                            {:else}
+                                <ChevronRight size={16} />
+                            {/if}
+                        </button>
+                    {/if}
                     <span class="sender"
                         >{message.type === "user"
                             ? "You"
@@ -425,7 +461,11 @@
                         >{message.timestamp.toLocaleTimeString()}</span
                     >
                 </div>
-                <div class="message-content">
+                <div
+                    class="message-content"
+                    class:collapsed={message.type === "tool" &&
+                        !message.expanded}
+                >
                     {#if message.type === "ai"}
                         {@html marked(message.content || "")}
                     {:else if message.type !== "tool"}
@@ -643,10 +683,32 @@
 
     .message-header {
         display: flex;
-        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
         margin-bottom: 0.5rem;
         font-size: 0.85rem;
-        opacity: 0.8;
+        opacity: 0.7;
+    }
+
+    .message-header .timestamp {
+        margin-left: auto;
+    }
+
+    .collapse-toggle {
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        padding: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.7;
+        transition: all 0.2s;
+    }
+
+    .collapse-toggle:hover {
+        opacity: 1;
     }
 
     .sender {
@@ -654,7 +716,11 @@
     }
 
     .message-content {
-        line-height: 1.5;
+        line-height: 1.6;
+    }
+
+    .message-content.collapsed {
+        display: none;
     }
 
     /* Markdown styling for AI messages */
