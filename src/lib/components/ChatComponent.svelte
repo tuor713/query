@@ -632,10 +632,13 @@
     .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 2rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        padding-left: 4rem;
+        padding-right: 4rem;
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
     }
 
     .welcome-message {
@@ -659,7 +662,6 @@
     }
 
     .message {
-        width: 95%;
         padding: 1rem 1.5rem;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
