@@ -42,4 +42,12 @@ export class StorageService {
     const savedQueries = localStorage.getItem("savedQueries");
     return savedQueries ? JSON.parse(savedQueries) : [];
   }
+
+  saveSystemPrompt(systemPrompt) {
+    localStorage.setItem("systemPrompt", systemPrompt);
+  }
+
+  getSystemPrompt() {
+    return localStorage.getItem("systemPrompt") || "";
+  }
 }

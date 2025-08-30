@@ -1,4 +1,5 @@
 import { tableFromIPC } from "apache-arrow";
+import { StorageService } from "./StorageService.js";
 
 /**
  * AI Service for handling chat interactions with Ollama backend
@@ -6,6 +7,19 @@ import { tableFromIPC } from "apache-arrow";
 export class AIService {
   constructor(baseUrl = "http://localhost:8888") {
     this.baseUrl = baseUrl;
+    this.storageService = new StorageService();
+  }
+
+  getDefaultSystemPrompt() {
+    return `You are a helpful AI assistant that can analyze data and run SQL queries.
+When users ask about data or request queries, use the "execute_sql_query" function to run the appropriate SQL query.
+You can take multiple turns to answer the user's question. When data has been retrieved successfully (non-zero rows retrieved succesfully), respond with an empty message or 'STOP'.
+The user will be able to see the full results of the query.
+
+- Today's date is {{today}}.
+- DO NOT generate data modification queries (INSERT, DELETE, DROP, UPDATE, TRUNCATE, etc.)
+- Use the "search" and "retrieve_doc" functions to access knowledge and sample queries.
+- Where necessary, use DESCRIBE <table> and SHOW TABLES FROM <schema>, SHOW SCHEMAS FROM <catalog> and SHOW CATALOGS for table metadata and schema discovery where needed`;
   }
 
   /**
@@ -114,22 +128,21 @@ export class AIService {
    * Process AI response and handle function calls
    */
   async processAIResponse(chatHistory) {
-    // Get today's date in yyyy-MM-dd format
+    // Get custom system prompt or use default
+    const customSystemPrompt = this.storageService.getSystemPrompt();
+    const defaultSystemPrompt = this.getDefaultSystemPrompt();
+
+    // Replace {{today}} variable with actual date
     const today = new Date().toISOString().split("T")[0];
+    const systemPromptContent = (
+      customSystemPrompt || defaultSystemPrompt
+    ).replace(/\{\{today\}\}/g, today);
 
     // Build messages array with system prompt and full chat history
     const messages = [
       {
         role: "system",
-        content: `You are a helpful AI assistant that can analyze data and run SQL queries.
-          Today's date is ${today}.
-          When users ask about data or request queries, use the "execute_sql_query" function to run the appropriate SQL query.
-          You can take multiple turns to answer the user's question. When data has been retrieved successfully (non-zero rows retrieved succesfully), respond with an empty message or 'STOP'.
-          The user will be able to see the full results of the query.
-
-          - DO NOT generate data modification queries (INSERT, DELETE, DROP, UPDATE, TRUNCATE, etc.)
-          - Use the "search" and "retrieve_doc" functions to access knowledge and sample queries.
-          - Where necessary, use DESCRIBE <table> and SHOW TABLES FROM <schema>, SHOW SCHEMAS FROM <catalog> and SHOW CATALOGS for table metadata and schema discovery where needed`,
+        content: systemPromptContent,
       },
     ];
 

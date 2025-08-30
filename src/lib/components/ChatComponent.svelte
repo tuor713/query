@@ -6,10 +6,12 @@
         MessageSquarePlus,
         ChevronDown,
         ChevronRight,
+        Settings,
     } from "@lucide/svelte";
     import { marked } from "marked";
     import ResultViewer from "./ResultViewer.svelte";
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
+    import SettingsDialog from "./SettingsDialog.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
     import { getDefaultEnvironment } from "$lib/config/environments.js";
     import { StorageService } from "$lib";
@@ -32,6 +34,10 @@
     let isLoading = $state(false);
     let chatContainer;
     let resultViewerInstances = $state({});
+    let showSettings = $state(false);
+    let systemPrompt = $state(
+        storageService.getSystemPrompt() || aiService.getDefaultSystemPrompt(),
+    );
 
     onMount(() => {
         scrollToBottom();
@@ -409,6 +415,19 @@
                 : msg,
         );
     }
+
+    function openSettings() {
+        showSettings = true;
+    }
+
+    function handleSystemPromptSave(newPrompt) {
+        systemPrompt = newPrompt;
+        storageService.saveSystemPrompt(newPrompt);
+    }
+
+    function getDefaultSystemPrompt() {
+        return aiService.getDefaultSystemPrompt();
+    }
 </script>
 
 <div class="chat-container">
@@ -597,8 +616,11 @@
         <button onclick={newChat} type="submit">
             <MessageSquarePlus />
         </button>
+        <button onclick={openSettings} type="button">
+            <Settings />
+        </button>
         <div class="environment-selector-wrapper">
-            <label>Environment:</label>
+            <label>Environment</label>
             <EnvironmentSelector
                 bind:selectedEnvironment
                 onChange={handleEnvironmentChange}
@@ -606,6 +628,13 @@
         </div>
     </div>
 </div>
+
+<SettingsDialog
+    bind:isOpen={showSettings}
+    bind:systemPrompt
+    onSave={handleSystemPromptSave}
+    getDefaultPrompt={getDefaultSystemPrompt}
+/>
 
 <style>
     .chat-container {
