@@ -39,6 +39,52 @@
         storageService.getSystemPrompt() || aiService.getDefaultSystemPrompt(),
     );
 
+    // Computed display messages for cleaner UI
+    let displayMessages = $state([]);
+
+    function computeDisplayMessages() {
+        const display = [];
+        let i = 0;
+
+        while (i < messages.length) {
+            const message = messages[i];
+
+            // Check if this is an AI message with a function call followed by a tool message
+            if (
+                message.type === "ai" &&
+                message.function_call &&
+                i + 1 < messages.length
+            ) {
+                const nextMessage = messages[i + 1];
+                if (
+                    nextMessage.type === "tool" &&
+                    nextMessage.function_name === message.function_call.name
+                ) {
+                    // Merge the AI function call and tool result into a single display message
+                    display.push({
+                        ...nextMessage,
+                        isMerged: true,
+                        aiContent: message.content, // Preserve the AI message content if any
+                        function_call: message.function_call,
+                    });
+                    i += 2; // Skip both messages as we've merged them
+                    continue;
+                }
+            }
+
+            // Otherwise, add the message as-is
+            display.push(message);
+            i++;
+        }
+
+        return display;
+    }
+
+    // Update displayMessages whenever messages change
+    $effect(() => {
+        displayMessages = computeDisplayMessages();
+    });
+
     onMount(() => {
         scrollToBottom();
     });
@@ -406,6 +452,7 @@
     }
 
     function toggleMessageExpanded(message) {
+        // Update the expanded state in the original messages array
         messages = messages.map((msg) =>
             msg.id === message.id
                 ? {
@@ -414,6 +461,19 @@
                   }
                 : msg,
         );
+        // For merged messages, also update the corresponding AI message if it exists
+        if (message.isMerged && message.function_call) {
+            messages = messages.map((msg) =>
+                msg.type === "ai" &&
+                msg.function_call &&
+                msg.function_call.name === message.function_name
+                    ? {
+                          ...msg,
+                          expanded: !message.expanded,
+                      }
+                    : msg,
+            );
+        }
     }
 
     function openSettings() {
@@ -432,7 +492,7 @@
 
 <div class="chat-container">
     <div class="chat-messages" bind:this={chatContainer}>
-        {#if messages.length === 0}
+        {#if displayMessages.length === 0}
             <div class="welcome-message">
                 <h2>Welcome to AI Chat!</h2>
                 <p>Ask me anything about your data. I can help you:</p>
@@ -449,10 +509,10 @@
             </div>
         {/if}
 
-        {#each messages as message (message.id)}
+        {#each displayMessages as message (message.id)}
             <div class="message {message.type}">
                 <div class="message-header">
-                    {#if message.type === "tool"}
+                    {#if message.type === "tool" || message.isMerged}
                         <button
                             class="collapse-toggle"
                             onclick={() => toggleMessageExpanded(message)}
@@ -470,7 +530,7 @@
                     <span class="sender"
                         >{message.type === "user"
                             ? "You"
-                            : message.type === "tool"
+                            : message.type === "tool" || message.isMerged
                               ? `Tool Response: ${message.function_name || "unknown"}`
                               : message.function_call
                                 ? `AI Assistant: Tool ${message.function_call.name}`
@@ -482,13 +542,16 @@
                 </div>
                 <div
                     class="message-content"
-                    class:collapsed={message.type === "tool" &&
+                    class:collapsed={(message.type === "tool" ||
+                        message.isMerged) &&
                         !message.expanded}
                 >
-                    {#if message.type === "ai"}
+                    {#if message.type === "ai" && !message.function_call}
                         {@html marked(message.content || "")}
-                    {:else if message.type !== "tool"}
+                    {:else if message.type === "user"}
                         {message.content}
+                    {:else if message.isMerged && message.aiContent}
+                        {@html marked(message.aiContent || "")}
                     {/if}
 
                     {#if message.query}
@@ -509,7 +572,7 @@
                         </div>
                     {/if}
 
-                    {#if message.type === "tool"}
+                    {#if message.type === "tool" || message.isMerged}
                         <div class="tool-result">
                             {#if message.isExecuting}
                                 <div class="query-loading">
