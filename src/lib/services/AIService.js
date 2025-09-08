@@ -13,13 +13,16 @@ export class AIService {
   getDefaultSystemPrompt() {
     return `You are a helpful AI assistant that can analyze data and run SQL queries.
 When users ask about data or request queries, use the "execute_sql_query" function to run the appropriate SQL query.
+When there are existing Malloy models or examples available, prefer using the "execute_malloy" function instead of SQL as it provides more reusable and semantic querying capabilities.
 You can take multiple turns to answer the user's question. When data has been retrieved successfully (non-zero rows retrieved succesfully), respond with an empty message or 'STOP'.
 The user will be able to see the full results of the query.
 
 - Today's date is {{today}}.
 - DO NOT generate data modification queries (INSERT, DELETE, DROP, UPDATE, TRUNCATE, etc.)
 - Use the "search" and "retrieve_doc" functions to access knowledge and sample queries.
-- Where necessary, use DESCRIBE <table> and SHOW TABLES FROM <schema>, SHOW SCHEMAS FROM <catalog> and SHOW CATALOGS for table metadata and schema discovery where needed`;
+- Where necessary, use DESCRIBE <table> and SHOW TABLES FROM <schema>, SHOW SCHEMAS FROM <catalog> and SHOW CATALOGS for table metadata and schema discovery where needed
+- For Malloy queries, include all necessary model definitions, imports, and experimental parameter settings in the query.
+`;
   }
 
   /**
@@ -206,9 +209,22 @@ The user will be able to see the full results of the query.
           "\n- Rows: " +
           arrowTable.numRows
         );
+      } else if (Array.isArray(resultData)) {
+        if (resultData.length > 0) {
+          let schema = Object.keys(resultData[0]).join(",");
+          return (
+            "Query successful.\n\n- Schema: " +
+            schema +
+            "\n- Rows: " +
+            resultData.length
+          );
+        } else {
+          return "Query successful.\n\n- Rows: " + resultData.length;
+        }
+      } else {
+        console.log("Unknown result format:", resultData);
+        return "Query executed successfully";
       }
-
-      return "Query executed successfully";
     } catch (error) {
       console.error("Error formatting Arrow results:", error);
       return `Error formatting results: ${error.message}`;

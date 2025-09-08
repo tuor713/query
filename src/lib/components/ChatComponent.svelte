@@ -14,7 +14,7 @@
     import SettingsDialog from "./SettingsDialog.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
     import { getDefaultEnvironment } from "$lib/config/environments.js";
-    import { StorageService } from "$lib";
+    import { StorageService, runMalloyQuery } from "$lib";
 
     let {
         username = "",
@@ -188,6 +188,8 @@
                 aiMessage.function_name = "retrieve_doc";
                 aiMessage.doc_id = aiResponse.function_call.arguments.doc_id;
             } else if (aiResponse.function_call.name === "execute_sql_query") {
+                aiMessage.query = aiResponse.function_call.arguments.query;
+            } else if (aiResponse.function_call.name === "execute_malloy") {
                 aiMessage.query = aiResponse.function_call.arguments.query;
             }
 
@@ -439,6 +441,86 @@
             }
 
             setTimeout(scrollToBottom, 10);
+        } else if (name === "execute_malloy") {
+            // For now, handle Malloy queries the same as SQL queries since they both return arrow data
+            console.log("Processing Malloy query", args.query);
+
+            const toolMessageId = messageId + 1;
+
+            // Add tool message showing it's executing
+            const toolMessage = {
+                id: toolMessageId,
+                type: "tool",
+                function_name: "execute_malloy",
+                content: "",
+                query: args.query,
+                expanded: true,
+                isExecuting: true,
+                timestamp: new Date(),
+            };
+            messages = [...messages, toolMessage];
+            setTimeout(scrollToBottom, 10);
+
+            try {
+                const result = await runMalloyQuery(
+                    args.query,
+                    args.limit || 100000,
+                    username,
+                    password,
+                    selectedEnvironment,
+                    extraCredentials,
+                );
+
+                if (isLoading && result && result.data && result.data.queryData) {
+                    // Update the tool message with the result
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  queryResult: result.data.queryData,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    // Load data into perspective viewer after DOM update
+                    setTimeout(async () => {
+                        const viewer = resultViewerInstances[toolMessageId];
+                        if (viewer && result.data.queryData) {
+                            await viewer.loadData(result.data.queryData);
+                        }
+                    }, 100);
+
+                    toolResult = { success: true, data: result.data.queryData };
+                } else {
+                    // Update the tool message with error
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  queryError: "No data returned from Malloy query",
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { error: "No data returned from Malloy query" };
+                }
+            } catch (error) {
+                console.error("Error executing Malloy query:", error);
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              queryError: error.message,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+                toolResult = { error: error.message };
+            }
+
+            setTimeout(scrollToBottom, 10);
         }
 
         return toolResult;
@@ -587,7 +669,9 @@
                                             : message.function_name ===
                                                 "retrieve_doc"
                                               ? "Retrieving document..."
-                                              : "Executing query..."}</span
+                                              : message.function_name === "execute_malloy"
+                                                ? "Executing Malloy query..."
+                                                : "Executing query..."}</span
                                     >
                                 </div>
                             {:else if message.function_name === "search"}

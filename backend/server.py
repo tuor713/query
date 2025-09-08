@@ -33,6 +33,10 @@ def convertToRows(cols, tuples):
         rows.append(row)
     return rows
 
+def readFile(filePath):
+    with open(filePath, 'r') as file:
+        return file.read()
+
 class TrinoArrowHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=4)
 
@@ -167,12 +171,8 @@ class SearchHandler(tornado.web.RequestHandler):
 
             logger.info(f"Search request: {query}")
 
-            sample_yaml = f"""results:
-  - title: "Trino Runtime Queries"
-    id: "runtime.queries"
-    summary: "This document discusses Trino runtime queries and related concepts"
-query: "{query}"
-total_results: 1"""
+            # Sample implementation with hard coded results
+            sample_yaml = readFile('docs/search.yml')
 
             self.set_header('Content-Type', 'text/yaml')
             self.write(sample_yaml)
@@ -200,31 +200,8 @@ class RetrieveDocHandler(tornado.web.RequestHandler):
 
             logger.info(f"Retrieve document request: {doc_id}")
 
-            sample_content = f"""Document: {doc_id}
-
-The table `system.runtime.queries` contains information about current and recent Trino queries.
-
-Schema:
-+-----------------+---------------------------+
-|Column           |Type                       |
-+-----------------+---------------------------+
-|query_id         |varchar                    |
-|state            |varchar                    |
-|user             |varchar                    |
-|source           |varchar                    |
-|query            |varchar                    |
-|resource_group_id|array(varchar)             |
-|queued_time_ms   |bigint                     |
-|analysis_time_ms |bigint                     |
-|planning_time_ms |bigint                     |
-|created          |timestamp(3) with time zone|
-|started          |timestamp(3) with time zone|
-|last_heartbeat   |timestamp(3) with time zone|
-|end              |timestamp(3) with time zone|
-|error_type       |varchar                    |
-|error_code       |varchar                    |
-+-----------------+---------------------------+
-"""
+            fileContents = readFile('docs/' + doc_id)
+            sample_content = f"""Document: {doc_id}\n\n{fileContents}"""
 
             self.set_header('Content-Type', 'text/plain')
             self.write(sample_content)

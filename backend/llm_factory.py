@@ -131,5 +131,19 @@ def get_available_functions() -> List[Dict]:
                 },
                 "required": ["doc_id"]
             }
+        },
+        {
+            "name": "execute_malloy",
+            "description": "Execute a Malloy query against the database. Will return result metadata only.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The Malloy query to execute."
+                    }
+                },
+                "required": ["query"]
+            }
         }
     ]
