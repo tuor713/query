@@ -61,6 +61,7 @@
                 <input
                     type="text"
                     bind:value={tab.name}
+                    size={Math.min(tab.name.length, 20)}
                     onblur={(e) => updateTabName(tab.id, e.target.value)}
                     class="tab-name-input"
                 />
@@ -121,8 +122,6 @@
         border: none;
         outline: none;
         font-size: 14px;
-        min-width: 60px;
-        width: auto;
     }
 
     .close-btn {
