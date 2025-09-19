@@ -5,7 +5,7 @@
     import "@finos/perspective-viewer-datagrid";
     import "@finos/perspective-viewer-d3fc";
 
-    let { perspectiveConfig, id } = $props();
+    let { perspectiveConfig, id, adaptiveHeight = false } = $props();
 
     let worker = $state.raw(null);
     let viewer = $state.raw(null);
@@ -41,6 +41,35 @@
                 plugin: "datagrid",
                 plugin_config: { edit_mode: "EDIT" },
             });
+        }
+
+        // Apply adaptive height after data is loaded
+        if (adaptiveHeight && viewer && table) {
+            setTimeout(() => {
+                adjustViewerHeight(table);
+            }, 100);
+        }
+    }
+
+    async function adjustViewerHeight(table) {
+        if (!viewer || !table) return;
+        
+        try {
+            const numRows = await table.size();
+            
+            // Calculate height: header (40px) + rows * 28px + padding
+            const headerHeight = 40;
+            const rowHeight = 28;
+            const padding = 20;
+            const minRows = 3;
+            const maxRows = 25;
+            
+            const displayRows = Math.max(minRows, Math.min(numRows, maxRows));
+            const calculatedHeight = headerHeight + (displayRows * rowHeight) + padding;
+            
+            viewer.style.height = `${calculatedHeight}px`;
+        } catch (error) {
+            console.warn('Could not adjust viewer height:', error);
         }
     }
 

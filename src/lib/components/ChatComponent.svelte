@@ -471,7 +471,12 @@
                     extraCredentials,
                 );
 
-                if (isLoading && result && result.data && result.data.queryData) {
+                if (
+                    isLoading &&
+                    result &&
+                    result.data &&
+                    result.data.queryData
+                ) {
                     // Update the tool message with the result
                     messages = messages.map((msg) =>
                         msg.id === toolMessageId
@@ -498,13 +503,16 @@
                         msg.id === toolMessageId
                             ? {
                                   ...msg,
-                                  queryError: "No data returned from Malloy query",
+                                  queryError:
+                                      "No data returned from Malloy query",
                                   isExecuting: false,
                               }
                             : msg,
                     );
 
-                    toolResult = { error: "No data returned from Malloy query" };
+                    toolResult = {
+                        error: "No data returned from Malloy query",
+                    };
                 }
             } catch (error) {
                 console.error("Error executing Malloy query:", error);
@@ -669,7 +677,8 @@
                                             : message.function_name ===
                                                 "retrieve_doc"
                                               ? "Retrieving document..."
-                                              : message.function_name === "execute_malloy"
+                                              : message.function_name ===
+                                                  "execute_malloy"
                                                 ? "Executing Malloy query..."
                                                 : "Executing query..."}</span
                                     >
@@ -693,6 +702,7 @@
                                         plugin_config: { edit_mode: "EDIT" },
                                     }}
                                     id={`chat-result-${message.id}`}
+                                    adaptiveHeight={true}
                                 />
                             {:else if message.queryError}
                                 <div class="query-error">
@@ -1073,7 +1083,8 @@
     }
 
     .tool-result :global(.resultviewer) {
-        min-height: 400px;
+        min-height: 100px;
+        height: auto;
         max-height: 600px;
     }
 
