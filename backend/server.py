@@ -1,25 +1,24 @@
-import tornado.web
-import tornado.ioloop
-from tornado.concurrent import run_on_executor
+import json
+import logging
 from concurrent.futures import ThreadPoolExecutor
-
 from datetime import datetime
+
 import pandas as pd
 import pyarrow as pa
+import tornado.ioloop
+import tornado.web
 import trino
+from tornado.concurrent import run_on_executor
 from trino.auth import BasicAuthentication
-import json
-
-import logging
 
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 logger = logging.getLogger(__name__)
 
 from llm_factory import UniversalLLM, get_available_functions
+
 
 def convertToRows(cols, tuples):
     rows = []
@@ -33,9 +32,25 @@ def convertToRows(cols, tuples):
         rows.append(row)
     return rows
 
+
+def sanitize_df(df):
+    if len(df) <= 0:
+        return df
+
+    # Force object types to string, if they are not already
+    ts = df.dtypes
+    for k in ts.keys():
+        if ts[k] == "object" and not isinstance(df[k][0], str):
+            print(f"Forcing column {k} to string")
+            df[k] = df[k].astype(str)
+
+    return df
+
+
 def readFile(filePath):
-    with open(filePath, 'r') as file:
+    with open(filePath, "r") as file:
         return file.read()
+
 
 class TrinoArrowHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=4)
@@ -52,22 +67,27 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
         self.finish()
 
     @run_on_executor
-    def execute_query_arrow(self, host, port, user, password, catalog, schema, query, extraCredentials):
+    def execute_query_arrow(
+        self, host, port, user, password, catalog, schema, query, extraCredentials
+    ):
         """Execute query and return arrow bytes - runs on executor thread"""
         conn = trino.dbapi.connect(
             host=host,
             port=port,
             user=user,
-            auth=BasicAuthentication(user, password) if password and password != "" else None,
+            auth=BasicAuthentication(user, password)
+            if password and password != ""
+            else None,
             catalog=catalog,
             schema=schema,
-            extra_credential=extraCredentials
+            extra_credential=extraCredentials,
         )
 
-        df = pd.read_sql(query, conn)
+        df = sanitize_df(pd.read_sql(query, conn))
 
         # Convert DataFrame to Arrow Table
         table = pa.Table.from_pandas(df)
+        print(f"Arrow schema {table.schema}")
 
         # Serialize to Arrow IPC format
         sink = pa.BufferOutputStream()
@@ -79,16 +99,20 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
         return arrow_bytes
 
     @run_on_executor
-    def execute_query_json(self, host, port, user, password, catalog, schema, query, extraCredentials):
+    def execute_query_json(
+        self, host, port, user, password, catalog, schema, query, extraCredentials
+    ):
         """Execute query and return JSON data - runs on executor thread"""
         conn = trino.dbapi.connect(
             host=host,
             port=port,
             user=user,
-            auth=BasicAuthentication(user, password) if password and password != "" else None,
+            auth=BasicAuthentication(user, password)
+            if password and password != ""
+            else None,
             catalog=catalog,
             schema=schema,
-            extra_credential=extraCredentials
+            extra_credential=extraCredentials,
         )
 
         cur = conn.cursor()
@@ -101,7 +125,7 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
             "query": query,
             "rows": convertToRows(columns, cur.fetchall()),
             "error": None,
-            "connectionTested": True
+            "connectionTested": True,
         }
 
     async def post(self):
@@ -110,20 +134,20 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
             request_data = json.loads(self.request.body)
 
             # Extract query and connection parameters
-            query = request_data.get('query')
+            query = request_data.get("query")
             if not query:
                 raise ValueError("Missing required 'query' parameter")
 
             # Optional connection parameters with defaults
-            host = request_data.get('host', 'localhost')
-            port = request_data.get('port', 8080)
-            user = request_data.get('user','admin')
-            password = request_data.get('password', None)
-            catalog = request_data.get('catalog', 'default')
-            schema = request_data.get('schema', 'default')
-            format = request_data.get('format', 'arrow')
+            host = request_data.get("host", "localhost")
+            port = request_data.get("port", 8080)
+            user = request_data.get("user", "admin")
+            password = request_data.get("password", None)
+            catalog = request_data.get("catalog", "default")
+            schema = request_data.get("schema", "default")
+            format = request_data.get("format", "arrow")
 
-            extraCredentials = request_data.get('extraCredentials', None)
+            extraCredentials = request_data.get("extraCredentials", None)
             tuplifiedExtraCredentials = None
             if extraCredentials is not None:
                 tuplifiedExtraCredentials = []
@@ -132,20 +156,34 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
 
             logger.info(f"Serving query: {query} from user {user} with format {format}")
 
-            if format == 'arrow':
+            if format == "arrow":
                 arrow_bytes = await self.execute_query_arrow(
-                    host, port, user, password, catalog, schema, query, tuplifiedExtraCredentials
+                    host,
+                    port,
+                    user,
+                    password,
+                    catalog,
+                    schema,
+                    query,
+                    tuplifiedExtraCredentials,
                 )
 
                 # Set appropriate headers and return the Arrow IPC bytes
-                self.set_header('Content-Type', 'application/octet-stream')
+                self.set_header("Content-Type", "application/octet-stream")
                 self.write(arrow_bytes)
-            elif format == 'json':
+            elif format == "json":
                 json_data = await self.execute_query_json(
-                    host, port, user, password, catalog, schema, query, tuplifiedExtraCredentials
+                    host,
+                    port,
+                    user,
+                    password,
+                    catalog,
+                    schema,
+                    query,
+                    tuplifiedExtraCredentials,
                 )
 
-                self.set_header('Content-Type', 'application/json')
+                self.set_header("Content-Type", "application/json")
                 self.write(json_data)
 
         except Exception as e:
@@ -167,14 +205,14 @@ class SearchHandler(tornado.web.RequestHandler):
     async def post(self):
         try:
             request_data = json.loads(self.request.body)
-            query = request_data.get('query', '')
+            query = request_data.get("query", "")
 
             logger.info(f"Search request: {query}")
 
             # Sample implementation with hard coded results
-            sample_yaml = readFile('docs/search.yml')
+            sample_yaml = readFile("docs/search.yml")
 
-            self.set_header('Content-Type', 'text/yaml')
+            self.set_header("Content-Type", "text/yaml")
             self.write(sample_yaml)
 
         except Exception as e:
@@ -196,14 +234,14 @@ class RetrieveDocHandler(tornado.web.RequestHandler):
     async def post(self):
         try:
             request_data = json.loads(self.request.body)
-            doc_id = request_data.get('doc_id', 'unknown')
+            doc_id = request_data.get("doc_id", "unknown")
 
             logger.info(f"Retrieve document request: {doc_id}")
 
-            fileContents = readFile('docs/' + doc_id)
+            fileContents = readFile("docs/" + doc_id)
             sample_content = f"""Document: {doc_id}\n\n{fileContents}"""
 
-            self.set_header('Content-Type', 'text/plain')
+            self.set_header("Content-Type", "text/plain")
             self.write(sample_content)
 
         except Exception as e:
@@ -217,8 +255,10 @@ class AIHandler(tornado.web.RequestHandler):
 
     def initialize(self):
         # Use UniversalLLM which will automatically choose provider based on environment
-        self.llm = UniversalLLM(provider='ollama')
-        logger.info(f"Initialized LLM with provider: {self.llm.get_provider()}, model: {self.llm.get_model_name()}")
+        self.llm = UniversalLLM(provider="ollama")
+        logger.info(
+            f"Initialized LLM with provider: {self.llm.get_provider()}, model: {self.llm.get_model_name()}"
+        )
 
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -239,7 +279,7 @@ class AIHandler(tornado.web.RequestHandler):
             request_data = json.loads(self.request.body)
 
             # Extract required parameters
-            messages = request_data.get('messages', [])
+            messages = request_data.get("messages", [])
 
             logger.info(f"Chat completion request: {messages}")
 
@@ -252,20 +292,20 @@ class AIHandler(tornado.web.RequestHandler):
             # Call LLM with functions (now runs on executor)
             llm_response = await self.execute_chat_completion(messages, functions)
 
-            if not llm_response.get('success'):
+            if not llm_response.get("success"):
                 self.set_status(500)
-                self.write({"error": llm_response.get('error', 'Unknown LLM error')})
+                self.write({"error": llm_response.get("error", "Unknown LLM error")})
                 return
 
             response_data = {
-                "text": llm_response.get('text', ''),
-                "model": llm_response.get('model', 'unknown'),
-                "function_call": llm_response.get('function_call'),
+                "text": llm_response.get("text", ""),
+                "model": llm_response.get("model", "unknown"),
+                "function_call": llm_response.get("function_call"),
             }
 
             logger.info(f"Chat completion response: {response_data}")
 
-            self.set_header('Content-Type', 'application/json')
+            self.set_header("Content-Type", "application/json")
             self.write(response_data)
 
         except Exception as e:
@@ -274,13 +314,20 @@ class AIHandler(tornado.web.RequestHandler):
             self.write({"error": str(e)})
 
 
-app = tornado.web.Application([
-    (r"/trino", TrinoArrowHandler),
-    (r"/ai/chat", AIHandler),
-    (r"/ai/search", SearchHandler),
-    (r"/ai/retrieve_doc", RetrieveDocHandler),
-    (r"/(.*)", tornado.web.StaticFileHandler, {"path":"./", "default_filename":"sql2.html"}),
-])
+app = tornado.web.Application(
+    [
+        (r"/trino", TrinoArrowHandler),
+        (r"/ai/chat", AIHandler),
+        (r"/ai/search", SearchHandler),
+        (r"/ai/retrieve_doc", RetrieveDocHandler),
+        (
+            r"/(.*)",
+            tornado.web.StaticFileHandler,
+            {"path": "./", "default_filename": "sql2.html"},
+        ),
+    ]
+)
+
 
 # Add CORS headers to all responses
 def add_cors_headers(self):
@@ -288,9 +335,10 @@ def add_cors_headers(self):
     self.set_header("Access-Control-Allow-Headers", "Content-Type")
     self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
+
 tornado.web.RequestHandler.set_default_headers = add_cors_headers
 
-print('Starting web server')
+print("Starting web server")
 # Start the Tornado server
 app.listen(8888)
 loop = tornado.ioloop.IOLoop.current()
