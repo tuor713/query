@@ -40,12 +40,24 @@
             <button onclick={onSave}
                 ><Save size="1em" style="vertical-align: middle;" /></button
             >
+            <button onclick={onReset}>Reset</button>
+            <div class="copy-url-container">
+                <button
+                    onclick={handleCopyURL}
+                    title="Copy URL to current view"
+                >
+                    <Link size="1em" style="vertical-align: middle;" />
+                </button>
+                {#if showCopySuccess}
+                    <div class="copy-success-popup">URL copied!</div>
+                {/if}
+            </div>
         </div>
     </div>
 
     <div class="control-group">
         <label>Limit</label>
-        <input type="number" bind:value={limit} class="limit-input" size="8" />
+        <input type="number" bind:value={limit} class="limit-input" />
     </div>
 
     <div class="control-group">
@@ -85,18 +97,6 @@
                     Run
                 {/if}
             </button>
-            <button onclick={onReset}>Reset</button>
-            <div class="copy-url-container">
-                <button
-                    onclick={handleCopyURL}
-                    title="Copy URL to current view"
-                >
-                    <Link size="1em" style="vertical-align: middle;" />
-                </button>
-                {#if showCopySuccess}
-                    <div class="copy-success-popup">URL copied!</div>
-                {/if}
-            </div>
         </div>
     </div>
 
@@ -140,6 +140,10 @@
     .action-buttons {
         display: flex;
         gap: 5px;
+    }
+
+    .limit-input {
+        width: 5rem;
     }
 
     #run {
