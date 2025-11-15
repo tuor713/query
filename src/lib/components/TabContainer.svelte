@@ -12,6 +12,7 @@
             name: `Query ${newId}`,
             query: "",
             queryName: "",
+            selection: "",
             limit: 100000,
             language: "sql",
             display: "perspective",

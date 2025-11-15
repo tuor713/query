@@ -88,6 +88,7 @@
             name: "Query 1",
             query: initialTabData.query,
             queryName: initialTabData.queryName,
+            selection: "",
             limit: initialTabData.limit,
             perspectiveConfig: initialTabData.perspectiveConfig,
             error: "",
@@ -233,6 +234,11 @@
         storageService.saveQuery(activeTab.query);
         storageService.saveLanguage(activeTab.language);
 
+        let queryToExecute = activeTab.query;
+        if (activeTab.selection && activeTab.selection.length > 0) {
+            queryToExecute = activeTab.selection;
+        }
+
         activeTab.error = "";
         activeTab.executing = true;
         activeTab.lastQueryTime = 0;
@@ -248,7 +254,7 @@
             var error = null;
             try {
                 result = await queryService.executeQuery(
-                    activeTab.query,
+                    queryToExecute,
                     activeTab.limit,
                     username,
                     password,
@@ -281,7 +287,7 @@
             var result = null;
             try {
                 result = await runMalloyQuery(
-                    activeTab.query,
+                    queryToExecute,
                     activeTab.limit,
                     username,
                     password,
@@ -333,6 +339,7 @@
                 <QueryEditor
                     bind:query={activeTab.query}
                     bind:language={activeTab.language}
+                    bind:selection={activeTab.selection}
                     onExecute={execute}
                 />
             </div>

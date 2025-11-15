@@ -5,6 +5,7 @@
     let {
         query = $bindable(""),
         language = $bindable("sql"),
+        selection = $bindable(""),
         onExecute,
     } = $props();
 
@@ -30,6 +31,20 @@
                     }
                 },
             );
+
+            editor.onDidChangeCursorSelection((e) => {
+                console.log(e);
+                if (
+                    e.selection.startLineNumber !== e.selection.endLineNumber ||
+                    e.selection.startColumn !== e.selection.endColumn
+                ) {
+                    let text = editor.getModel().getValueInRange(e.selection);
+                    console.log("Edit selection", e.selection, text);
+                    selection = text;
+                } else {
+                    selection = "";
+                }
+            });
         }
     }
 
