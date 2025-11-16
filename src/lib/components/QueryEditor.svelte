@@ -79,9 +79,9 @@
         border-width: 1px;
         border-style: solid;
         border-color: black;
-        height: auto;
+        height: 6rem;
         width: auto;
-        min-height: 100px;
+        min-height: 2rem;
         max-height: 50vh;
         overflow: auto;
         resize: vertical;
