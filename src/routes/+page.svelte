@@ -414,7 +414,7 @@
 
                 <div id="content">
                     <TabContainer bind:tabs bind:activeTabId>
-                        {#each tabs as tab}
+                        {#each tabs as tab (tab.id)}
                             {@render children(tab, tab.id === activeTabId)}
                         {/each}
                     </TabContainer>
