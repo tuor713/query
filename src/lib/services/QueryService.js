@@ -4,7 +4,7 @@
 import { rewriteQueryWithLimit, isSpecialCommand } from "../utils/sqlParser.js";
 
 export class QueryService {
-  constructor(baseUrl = "http://localhost:8888") {
+  constructor(baseUrl) {
     this.baseUrl = baseUrl;
   }
 

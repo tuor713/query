@@ -27,10 +27,16 @@
     import { API } from "@malloydata/malloy";
     import { Bot, Database } from "@lucide/svelte";
 
+    let backendUrl = window.location.origin;
+    if (import.meta.env.DEV) {
+        console.log("*** DEV MODE ***");
+        backendUrl = "http://localhost:8888";
+    }
+
     // Services
     const storageService = new StorageService();
-    const queryService = new QueryService();
-    const aiService = new AIService();
+    const queryService = new QueryService(backendUrl);
+    const aiService = new AIService(backendUrl);
 
     // State
     let username = $state(storageService.getUsername());

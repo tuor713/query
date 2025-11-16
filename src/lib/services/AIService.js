@@ -5,7 +5,7 @@ import { StorageService } from "./StorageService.js";
  * AI Service for handling chat interactions with Ollama backend
  */
 export class AIService {
-  constructor(baseUrl = "http://localhost:8888") {
+  constructor(baseUrl) {
     this.baseUrl = baseUrl;
     this.storageService = new StorageService();
   }
