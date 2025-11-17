@@ -295,6 +295,7 @@
                 result = await runMalloyQuery(
                     queryToExecute,
                     activeTab.limit,
+                    backendUrl,
                     username,
                     password,
                     selectedEnvironment,

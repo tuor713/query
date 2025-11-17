@@ -184,18 +184,21 @@ class DynamicURLReader implements URLReader {
 
 class RemoteTrinoRunner implements BaseRunner {
   constructor(
+    baseUrl: string,
     defaultLimit: number,
     username: string,
     password: string,
     environment: string,
     extraCredentials: any[] = [],
   ) {
+    this.baseUrl = baseUrl;
     this.defaultLimit = defaultLimit;
     this.username = username;
     this.password = password;
     this.environment = environment;
     this.extraCredentials = extraCredentials;
   }
+  baseUrl: string;
   defaultLimit: number;
   username: string;
   password: string;
@@ -225,7 +228,7 @@ class RemoteTrinoRunner implements BaseRunner {
       }
     }
 
-    let qs = new QueryService();
+    let qs = new QueryService(this.baseUrl);
 
     const result = await qs.executeQuery(
       sql,
@@ -280,6 +283,7 @@ class RemoteTrinoRunner implements BaseRunner {
 export class RemoteTrinoConnection extends TrinoPrestoConnection {
   constructor(
     arg: string,
+    baseUrl: string,
     defaultLimit: number,
     username: string,
     password: string,
@@ -288,7 +292,14 @@ export class RemoteTrinoConnection extends TrinoPrestoConnection {
   ) {
     super(
       arg,
-      new RemoteTrinoRunner(defaultLimit, username, password, environment, extraCredentials),
+      new RemoteTrinoRunner(
+        baseUrl,
+        defaultLimit,
+        username,
+        password,
+        environment,
+        extraCredentials,
+      ),
       {},
     );
   }
@@ -314,6 +325,7 @@ export class RemoteTrinoConnection extends TrinoPrestoConnection {
 export async function runMalloyQuery(
   query: string,
   limit: number,
+  baseUrl: string,
   username: string,
   password: string,
   environment: string,
@@ -322,6 +334,7 @@ export async function runMalloyQuery(
   console.log("Running Malloy query", query);
   const connection = new RemoteTrinoConnection(
     "trino",
+    baseUrl,
     limit,
     username,
     password,
