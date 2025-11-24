@@ -10,6 +10,8 @@
     } from "@lucide/svelte";
     import { marked } from "marked";
     import ResultViewer from "./ResultViewer.svelte";
+    import VegaLiteChart from "./VegaLiteChart.svelte";
+    import MarkdownWithCharts from "./MarkdownWithCharts.svelte";
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
     import SettingsDialog from "./SettingsDialog.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
@@ -34,6 +36,8 @@
     let isLoading = $state(false);
     let chatContainer;
     let resultViewerInstances = $state({});
+    let datasetRegistry = $state({}); // Store query results by dataset ID
+    let datasetCounter = $state(0); // Counter for generating dataset IDs
     let showSettings = $state(false);
     let systemPrompt = $state(
         storageService.getSystemPrompt() || aiService.getDefaultSystemPrompt(),
@@ -393,12 +397,17 @@
                 );
 
                 if (isLoading && result.success) {
+                    // Assign a dataset ID to this query result
+                    const datasetId = `dataset_${++datasetCounter}`;
+                    datasetRegistry[datasetId] = result.data;
+
                     // Update the tool message with the result
                     messages = messages.map((msg) =>
                         msg.id === toolMessageId
                             ? {
                                   ...msg,
                                   queryResult: result.data,
+                                  datasetId: datasetId,
                                   isExecuting: false,
                               }
                             : msg,
@@ -412,7 +421,11 @@
                         }
                     }, 100);
 
-                    toolResult = { success: true, data: result.data };
+                    toolResult = {
+                        success: true,
+                        data: result.data,
+                        datasetId: datasetId,
+                    };
                 } else {
                     // Update the tool message with error
                     messages = messages.map((msg) =>
@@ -477,12 +490,17 @@
                     result.data &&
                     result.data.queryData
                 ) {
+                    // Assign a dataset ID to this query result
+                    const datasetId = `dataset_${++datasetCounter}`;
+                    datasetRegistry[datasetId] = result.data.queryData;
+
                     // Update the tool message with the result
                     messages = messages.map((msg) =>
                         msg.id === toolMessageId
                             ? {
                                   ...msg,
                                   queryResult: result.data.queryData,
+                                  datasetId: datasetId,
                                   isExecuting: false,
                               }
                             : msg,
@@ -496,7 +514,11 @@
                         }
                     }, 100);
 
-                    toolResult = { success: true, data: result.data.queryData };
+                    toolResult = {
+                        success: true,
+                        data: result.data.queryData,
+                        datasetId: datasetId,
+                    };
                 } else {
                     // Update the tool message with error
                     messages = messages.map((msg) =>
@@ -637,11 +659,17 @@
                         !message.expanded}
                 >
                     {#if message.type === "ai" && !message.function_call}
-                        {@html marked(message.content || "")}
+                        <MarkdownWithCharts
+                            content={message.content || ""}
+                            {datasetRegistry}
+                        />
                     {:else if message.type === "user"}
                         {message.content}
                     {:else if message.isMerged && message.aiContent}
-                        {@html marked(message.aiContent || "")}
+                        <MarkdownWithCharts
+                            content={message.aiContent || ""}
+                            {datasetRegistry}
+                        />
                     {/if}
 
                     {#if message.query}

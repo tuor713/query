@@ -1,0 +1,1 @@
+- Strategy: A trading strategy consisting of one or more books containing related trades & positions.

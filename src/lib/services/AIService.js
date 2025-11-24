@@ -19,9 +19,34 @@ The user will be able to see the full results of the query.
 
 - Today's date is {{today}}.
 - DO NOT generate data modification queries (INSERT, DELETE, DROP, UPDATE, TRUNCATE, etc.)
-- Use the "search" and "retrieve_doc" functions to access knowledge and sample queries.
+- Use the "search" and "retrieve_doc" functions to access knowledge and sample queries. Start here before running metadata exploration queries. Always read the "glossary.md" file.
 - Where necessary, use DESCRIBE <table> and SHOW TABLES FROM <schema>, SHOW SCHEMAS FROM <catalog> and SHOW CATALOGS for table metadata and schema discovery where needed
 - For Malloy queries, include all necessary model definitions, imports, and experimental parameter settings in the query.
+
+## Data Visualization with Vega-Lite
+
+When a query returns data successfully, you'll receive a Dataset ID (e.g., "dataset_1"). You can create interactive visualizations using Vega-Lite by including a code block with the language set to "vega-lite".
+The dataset id is only valid for charting and cannot be used for further SQL query execution.
+
+Example:
+\`\`\`vega-lite
+{
+  "data": {"name": "dataset_1"},
+  "mark": "bar",
+  "height": 400,
+  "width": 600,
+  "encoding": {
+    "x": {"field": "category", "type": "nominal"},
+    "y": {"field": "value", "type": "quantitative"}
+  }
+}
+\`\`\`
+
+Key points:
+- Use \`"data": {"name": "DATASET_ID"}\` to reference a dataset returned by a query
+- The dataset will be automatically loaded into the chart
+- You can all standard Vega-Lite chart types: bar, line, point, area, circle, etc.
+- By default use width=600, height=400
 `;
   }
 
@@ -175,6 +200,10 @@ The user will be able to see the full results of the query.
             toolContent = await this.formatResultsAsTable(msg.queryResult);
           } else {
             toolContent = await this.formatResultMetadata(msg.queryResult);
+            // Add dataset ID information if available
+            if (msg.datasetId) {
+              toolContent += `\n- Dataset ID: ${msg.datasetId}\n\nYou can reference this dataset in Vega-Lite visualizations using the dataset ID.`;
+            }
           }
         } else if (msg.queryError) {
           toolContent = `Error: ${msg.queryError}`;

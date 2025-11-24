@@ -43,6 +43,9 @@
     "monaco-editor": "^0.52.2",
     "node-sql-parser": "^5.3.10",
     "svelte-monaco": "^1.0.4",
+    "vega": "^6.2.0",
+    "vega-embed": "^7.1.0",
+    "vega-lite": "^6.4.1",
     "yaml": "^2.8.0"
   }
 }

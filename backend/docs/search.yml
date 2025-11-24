@@ -5,5 +5,8 @@ results:
   - title: "Risk data"
     id: "risk.md"
     summary: "Documentation of memory.default.risk table and related dimensions"
+  - title: "Glossary"
+    id: "glossary.md"
+    summary: "Common terminology"
 query: "{query}"
 total_results: 1
