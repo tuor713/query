@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
@@ -33,7 +34,26 @@ def convertToRows(cols, tuples):
     return rows
 
 
+def rename_duplicate_columns(df):
+    cols = {}
+    newcols = []
+    for i, col in enumerate(df.columns):
+        if col in cols:
+            newcols.append(col + "_" + str(cols[col] + 1))
+            cols[col] += 1
+        else:
+            newcols.append(col)
+            cols[col] = 1
+
+    df.columns = newcols
+
+    return df
+
+
 def sanitize_df(df):
+    df = rename_duplicate_columns(df)
+    print(df)
+
     if len(df) <= 0:
         return df
 
