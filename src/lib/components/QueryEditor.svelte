@@ -1,6 +1,7 @@
 <script>
     import Monaco from "svelte-monaco";
     import { monarch } from "@malloydata/syntax-highlight/grammars/malloy/malloy.monarch";
+    import def from "$lib/utils/prqlsyntax.js";
 
     let {
         query = $bindable(""),
@@ -17,6 +18,10 @@
         monaco = monacoInstance;
         monaco.languages.register({ id: "malloy" });
         monaco.languages.setMonarchTokensProvider("malloy", monarch);
+
+        // Register PRQL language with basic syntax highlighting
+        monaco.languages.register({ id: "prql" });
+        monaco.languages.setMonarchTokensProvider("prql", def);
     });
 
     function handleEditorMount() {

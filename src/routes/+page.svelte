@@ -26,6 +26,12 @@
     import { MalloyRenderer } from "@malloydata/render";
     import { API } from "@malloydata/malloy";
     import { Bot, Database } from "@lucide/svelte";
+    import __wbg_init from "prqlc/dist/web";
+    import * as prqlc from "prqlc/dist/web";
+    import PRQL_WASM from "prqlc/dist/web/prqlc_js_bg.wasm?url";
+
+    console.log("init prqlc", PRQL_WASM);
+    __wbg_init(PRQL_WASM);
 
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {
@@ -261,6 +267,44 @@
             try {
                 result = await queryService.executeQuery(
                     queryToExecute,
+                    activeTab.limit,
+                    username,
+                    password,
+                    selectedEnvironment,
+                    "arrow",
+                    extraCredentials,
+                );
+            } catch (e) {
+                console.error(e);
+                error = String(e);
+            }
+
+            activeTab.executing = false;
+            clearInterval(refreshTimer);
+            activeTab.lastQueryTime = performance.now() - start;
+
+            if (
+                error === null &&
+                result.success &&
+                activeTab.resultViewerComponent
+            ) {
+                await activeTab.resultViewerComponent.loadData(result.data);
+            } else {
+                console.log("Error", result, activeTab.resultViewerComponent);
+                activeTab.error = error || result.error;
+            }
+        } else if (activeTab.language === "prql") {
+            // handle PRQL - compile to SQL then execute
+            var result = null;
+            var error = null;
+            try {
+                // Compile PRQL to SQL
+                const compiledSQL = prqlc.compile(queryToExecute);
+                console.log("Compiled PRQL to SQL:", compiledSQL);
+
+                // Execute the compiled SQL
+                result = await queryService.executeQuery(
+                    compiledSQL,
                     activeTab.limit,
                     username,
                     password,
