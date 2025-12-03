@@ -26,12 +26,8 @@
     import { MalloyRenderer } from "@malloydata/render";
     import { API } from "@malloydata/malloy";
     import { Bot, Database } from "@lucide/svelte";
-    import __wbg_init from "prqlc/dist/web";
-    import * as prqlc from "prqlc/dist/web";
-    import PRQL_WASM from "prqlc/dist/web/prqlc_js_bg.wasm?url";
-
-    console.log("init prqlc", PRQL_WASM);
-    __wbg_init(PRQL_WASM);
+    // required patch in wvlet package to resolve package.json issue
+    import { WvletCompiler } from "@wvlet/wvlet";
 
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {
@@ -293,16 +289,14 @@
                 console.log("Error", result, activeTab.resultViewerComponent);
                 activeTab.error = error || result.error;
             }
-        } else if (activeTab.language === "prql") {
-            // handle PRQL - compile to SQL then execute
+        } else if (activeTab.language === "wvlet") {
             var result = null;
             var error = null;
             try {
-                // Compile PRQL to SQL
-                const compiledSQL = prqlc.compile(queryToExecute);
-                console.log("Compiled PRQL to SQL:", compiledSQL);
+                const compiler = new WvletCompiler();
+                const compiledSQL = compiler.compile(queryToExecute);
+                console.log("Compiled Wvlet to SQL:", compiledSQL);
 
-                // Execute the compiled SQL
                 result = await queryService.executeQuery(
                     compiledSQL,
                     activeTab.limit,

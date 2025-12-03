@@ -72,7 +72,7 @@
         <label>Language</label>
         <select bind:value={language}>
             <option value="sql" selected>sql</option>
-            <option value="prql">prql</option>
+            <option value="wvlet">wvlet</option>
             <option value="malloy">malloy</option>
         </select>
     </div>

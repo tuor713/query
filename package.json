@@ -39,6 +39,7 @@
     "@uwdata/mosaic-core": "^0.18.0",
     "@uwdata/mosaic-spec": "^0.18.0",
     "@uwdata/vgplot": "^0.18.0",
+    "@wvlet/wvlet": "^2025.1.22",
     "marked": "^16.2.0",
     "monaco-editor": "^0.52.2",
     "node-sql-parser": "^5.3.10",
