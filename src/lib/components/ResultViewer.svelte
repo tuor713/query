@@ -1,9 +1,9 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-    import perspective from "@finos/perspective";
-    import perspective_viewer from "@finos/perspective-viewer";
-    import "@finos/perspective-viewer-datagrid";
-    import "@finos/perspective-viewer-d3fc";
+    import perspective from "@perspective-dev/client";
+    import "@perspective-dev/viewer";
+    import "@perspective-dev/viewer-datagrid";
+    import "@perspective-dev/viewer-d3fc";
 
     let { perspectiveConfig, id, adaptiveHeight = false } = $props();
 
@@ -53,23 +53,24 @@
 
     async function adjustViewerHeight(table) {
         if (!viewer || !table) return;
-        
+
         try {
             const numRows = await table.size();
-            
+
             // Calculate height: header (40px) + rows * 28px + padding
             const headerHeight = 40;
             const rowHeight = 28;
             const padding = 20;
             const minRows = 3;
             const maxRows = 25;
-            
+
             const displayRows = Math.max(minRows, Math.min(numRows, maxRows));
-            const calculatedHeight = headerHeight + (displayRows * rowHeight) + padding;
-            
+            const calculatedHeight =
+                headerHeight + displayRows * rowHeight + padding;
+
             viewer.style.height = `${calculatedHeight}px`;
         } catch (error) {
-            console.warn('Could not adjust viewer height:', error);
+            console.warn("Could not adjust viewer height:", error);
         }
     }
 
@@ -85,7 +86,7 @@
 
 <style>
     :global {
-        @import url("../../../node_modules/@finos/perspective-viewer/dist/css/themes.css");
+        @import url("../../../node_modules/@perspective-dev/viewer/dist/css/themes.css");
     }
 
     .resultviewer {
