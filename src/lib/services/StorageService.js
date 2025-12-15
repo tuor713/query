@@ -50,4 +50,12 @@ export class StorageService {
   getSystemPrompt() {
     return localStorage.getItem("systemPrompt") || "";
   }
+
+  saveMemory(memory) {
+    localStorage.setItem("aiMemory", memory);
+  }
+
+  getMemory() {
+    return localStorage.getItem("aiMemory") || "";
+  }
 }

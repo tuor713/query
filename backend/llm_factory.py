@@ -1,9 +1,11 @@
 """
 LLM Factory for creating appropriate LLM instances based on configuration
 """
+
 from typing import Dict, List, Optional, Any
 import os
 from llm import OllamaLLM
+
 
 class LLMFactory:
     """Factory class for creating LLM instances"""
@@ -25,20 +27,24 @@ class LLMFactory:
         """
         # Determine provider from environment if not specified
         if provider is None:
-            provider = os.getenv('LLM_PROVIDER', 'ollama').lower()
+            provider = os.getenv("LLM_PROVIDER", "ollama").lower()
 
         provider = provider.lower()
 
-        if provider == 'ollama':
+        if provider == "ollama":
             return LLMFactory._create_ollama_llm(**kwargs)
         else:
-            raise ValueError(f"Unsupported LLM provider: {provider}. Supported providers: 'ollama', 'gemini'")
+            raise ValueError(
+                f"Unsupported LLM provider: {provider}. Supported providers: 'ollama', 'gemini'"
+            )
 
     @staticmethod
     def _create_ollama_llm(**kwargs) -> OllamaLLM:
         """Create Ollama LLM instance"""
-        base_url = kwargs.get('base_url') or os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-        model = kwargs.get('model') or os.getenv('OLLAMA_MODEL', 'gpt-oss')
+        base_url = kwargs.get("base_url") or os.getenv(
+            "OLLAMA_BASE_URL", "http://localhost:11434"
+        )
+        model = kwargs.get("model") or os.getenv("OLLAMA_MODEL", "gpt-oss")
 
         return OllamaLLM(base_url=base_url, model=model)
 
@@ -58,9 +64,11 @@ class UniversalLLM:
             **kwargs: Additional arguments passed to the LLM constructor
         """
         self.llm = LLMFactory.create_llm(provider, **kwargs)
-        self.provider = provider or os.getenv('LLM_PROVIDER', 'ollama').lower()
+        self.provider = provider or os.getenv("LLM_PROVIDER", "ollama").lower()
 
-    def chat_complete(self, messages: List[Dict[str, str]], functions: Optional[List[Dict]] = None) -> Dict[str, Any]:
+    def chat_complete(
+        self, messages: List[Dict[str, str]], functions: Optional[List[Dict]] = None
+    ) -> Dict[str, Any]:
         """
         Send a chat completion request using the configured LLM provider
 
@@ -79,9 +87,9 @@ class UniversalLLM:
 
     def get_model_name(self) -> str:
         """Get the current model name"""
-        if hasattr(self.llm, 'model'):
+        if hasattr(self.llm, "model"):
             return self.llm.model
-        elif hasattr(self.llm, 'model_name'):
+        elif hasattr(self.llm, "model_name"):
             return self.llm.model_name
         else:
             return "unknown"
@@ -98,11 +106,11 @@ def get_available_functions() -> List[Dict]:
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "The SQL query to execute. Do not include a trailing ';' at the end of the query."
+                        "description": "The SQL query to execute. Do not include a trailing ';' at the end of the query.",
                     }
                 },
-                "required": ["query"]
-            }
+                "required": ["query"],
+            },
         },
         {
             "name": "search",
@@ -110,13 +118,10 @@ def get_available_functions() -> List[Dict]:
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The search to execute."
-                    }
+                    "query": {"type": "string", "description": "The search to execute."}
                 },
-                "required": ["query"]
-            }
+                "required": ["query"],
+            },
         },
         {
             "name": "retrieve_doc",
@@ -126,11 +131,11 @@ def get_available_functions() -> List[Dict]:
                 "properties": {
                     "doc_id": {
                         "type": "string",
-                        "description": "The document id to retrieve."
+                        "description": "The document id to retrieve.",
                     }
                 },
-                "required": ["doc_id"]
-            }
+                "required": ["doc_id"],
+            },
         },
         {
             "name": "execute_malloy",
@@ -140,10 +145,31 @@ def get_available_functions() -> List[Dict]:
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "The Malloy query to execute."
+                        "description": "The Malloy query to execute.",
                     }
                 },
-                "required": ["query"]
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "load_memory",
+            "description": "Load the current memory document containing information about user interactions, preferences, and context from previous conversations. Use this at the start of conversations or when you need to recall user-specific information.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "save_memory",
+            "description": "Save the memory document with updated information about user interactions, preferences, feedback, and important context. Use this after learning something important about the user or after receiving feedback.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "memory": {
+                        "type": "string",
+                        "description": "The complete memory document to save. Should be a well-structured text document containing user preferences, feedback, important context, and interaction history.",
+                    }
+                },
+                "required": ["memory"],
+            },
+        },
             }
         }
     ]

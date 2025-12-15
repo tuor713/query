@@ -7,6 +7,7 @@
         ChevronDown,
         ChevronRight,
         Settings,
+        Brain,
     } from "@lucide/svelte";
     import { marked } from "marked";
     import ResultViewer from "./ResultViewer.svelte";
@@ -14,6 +15,7 @@
     import MarkdownWithCharts from "./MarkdownWithCharts.svelte";
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
     import SettingsDialog from "./SettingsDialog.svelte";
+    import MemoryDialog from "./MemoryDialog.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
     import { getDefaultEnvironment } from "$lib/config/environments.js";
     import { StorageService, runMalloyQuery } from "$lib";
@@ -39,9 +41,11 @@
     let datasetRegistry = $state({}); // Store query results by dataset ID
     let datasetCounter = $state(0); // Counter for generating dataset IDs
     let showSettings = $state(false);
+    let showMemory = $state(false);
     let systemPrompt = $state(
         storageService.getSystemPrompt() || aiService.getDefaultSystemPrompt(),
     );
+    let aiMemory = $state(storageService.getMemory());
 
     // Computed display messages for cleaner UI
     let displayMessages = $state([]);
@@ -551,6 +555,100 @@
             }
 
             setTimeout(scrollToBottom, 10);
+        } else if (name === "load_memory") {
+            const toolMessageId = messageId + 1;
+
+            // Add tool message showing it's executing
+            const toolMessage = {
+                id: toolMessageId,
+                type: "tool",
+                function_name: "load_memory",
+                content: "",
+                expanded: false,
+                isExecuting: true,
+                timestamp: new Date(),
+            };
+            messages = [...messages, toolMessage];
+            setTimeout(scrollToBottom, 10);
+
+            try {
+                const memory = storageService.getMemory();
+                const content = memory || "No memory stored yet.";
+
+                // Update the tool message with the result
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              content: content,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+
+                toolResult = { success: true, content: content };
+            } catch (error) {
+                console.error("Error loading memory:", error);
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              content: `Error: ${error.message}`,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+                toolResult = { error: error.message };
+            }
+
+            setTimeout(scrollToBottom, 10);
+        } else if (name === "save_memory") {
+            const toolMessageId = messageId + 1;
+
+            // Add tool message showing it's executing
+            const toolMessage = {
+                id: toolMessageId,
+                type: "tool",
+                function_name: "save_memory",
+                content: "",
+                expanded: false,
+                isExecuting: true,
+                timestamp: new Date(),
+            };
+            messages = [...messages, toolMessage];
+            setTimeout(scrollToBottom, 10);
+
+            try {
+                storageService.saveMemory(args.memory);
+                const content = "Memory saved successfully.";
+
+                // Update the tool message with the result
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              content: content,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+
+                toolResult = { success: true, content: content };
+            } catch (error) {
+                console.error("Error saving memory:", error);
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              content: `Error: ${error.message}`,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+                toolResult = { error: error.message };
+            }
+
+            setTimeout(scrollToBottom, 10);
         }
 
         return toolResult;
@@ -592,9 +690,18 @@
         showSettings = true;
     }
 
+    function openMemory() {
+        showMemory = true;
+    }
+
     function handleSystemPromptSave(newPrompt) {
         systemPrompt = newPrompt;
         storageService.saveSystemPrompt(newPrompt);
+    }
+
+    function handleMemorySave(newMemory) {
+        aiMemory = newMemory;
+        storageService.saveMemory(newMemory);
     }
 
     function getDefaultSystemPrompt() {
@@ -801,7 +908,10 @@
         <button onclick={newChat} type="submit">
             <MessageSquarePlus />
         </button>
-        <button onclick={openSettings} type="button">
+        <button onclick={openMemory} type="button" title="AI Memory">
+            <Brain />
+        </button>
+        <button onclick={openSettings} type="button" title="Settings">
             <Settings />
         </button>
         <div class="environment-selector-wrapper">
@@ -819,6 +929,12 @@
     bind:systemPrompt
     onSave={handleSystemPromptSave}
     getDefaultPrompt={getDefaultSystemPrompt}
+/>
+
+<MemoryDialog
+    bind:isOpen={showMemory}
+    bind:memory={aiMemory}
+    onSave={handleMemorySave}
 />
 
 <style>
