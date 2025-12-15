@@ -11,7 +11,6 @@
     } from "@lucide/svelte";
     import { marked } from "marked";
     import ResultViewer from "./ResultViewer.svelte";
-    import VegaLiteChart from "./VegaLiteChart.svelte";
     import MarkdownWithCharts from "./MarkdownWithCharts.svelte";
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
     import SettingsDialog from "./SettingsDialog.svelte";
