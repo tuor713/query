@@ -74,7 +74,7 @@
                     spec.data = { values: jsonData };
                 }
 
-                return { ...block, spec };
+                return { ...block, spec, rawSpec: JSON.parse(block.spec) };
             } catch (e) {
                 console.error("Error parsing Vega-Lite spec:", e);
                 return { ...block, spec: null, error: e.message };
@@ -98,7 +98,7 @@
         <VegaLiteChart spec={block.spec} />
         <details class="vega-spec-display">
             <summary>Vega-Lite Specification</summary>
-            <pre><code>{JSON.stringify(block.spec, null, 2)}</code></pre>
+            <pre><code>{JSON.stringify(block.rawSpec, null, 2)}</code></pre>
         </details>
     {:else if block.error}
         <div class="chart-error">
