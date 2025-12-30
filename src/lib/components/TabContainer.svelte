@@ -15,6 +15,7 @@
             selection: "",
             limit: 100000,
             language: "sql",
+            keepView: false,
             display: "perspective",
             perspectiveConfig: {
                 columns: [],
