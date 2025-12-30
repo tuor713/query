@@ -2,8 +2,9 @@
 LLM Factory for creating appropriate LLM instances based on configuration
 """
 
-from typing import Dict, List, Optional, Any
 import os
+from typing import Any, Dict, List, Optional
+
 from llm import OllamaLLM
 
 
@@ -170,6 +171,4 @@ def get_available_functions() -> List[Dict]:
                 "required": ["memory"],
             },
         },
-            }
-        }
     ]
