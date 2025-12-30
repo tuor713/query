@@ -5,6 +5,7 @@
     let {
         queryName = $bindable(""),
         limit = $bindable(100000),
+        keepView = $bindable(false),
         executing = false,
         lastQueryTime = 0,
         selectedEnvironment = $bindable(),
@@ -87,6 +88,16 @@
             <option value="mosaic">mosaic</option>
         </select>
     </div>
+
+    {#if display === "perspective"}
+        <div class="control-group">
+            <label>&nbsp;</label>
+            <div class="checkbox-container">
+                <input type="checkbox" id="keepView" bind:checked={keepView} />
+                <label for="keepView" class="checkbox-label">Keep view</label>
+            </div>
+        </div>
+    {/if}
 
     <div class="control-group">
         <label>&nbsp;</label>
@@ -201,5 +212,24 @@
         transform: translateX(-50%);
         border: 5px solid transparent;
         border-top-color: #333;
+    }
+
+    .checkbox-container {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .checkbox-label {
+        font-size: 0.9em;
+        color: #333;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    input[type="checkbox"] {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
     }
 </style>

@@ -98,6 +98,7 @@
             queryName: initialTabData.queryName,
             selection: "",
             limit: initialTabData.limit,
+            keepView: false,
             perspectiveConfig: initialTabData.perspectiveConfig,
             error: "",
             language: initialTabData.language,
@@ -284,6 +285,12 @@
                 result.success &&
                 activeTab.resultViewerComponent
             ) {
+                // Save current config if keepView is enabled
+                if (activeTab.keepView && activeTab.display === "perspective") {
+                    const currentConfig =
+                        await activeTab.resultViewerComponent.saveViewerConfig();
+                    activeTab.perspectiveConfig = currentConfig;
+                }
                 await activeTab.resultViewerComponent.loadData(result.data);
             } else {
                 console.log("Error", result, activeTab.resultViewerComponent);
@@ -320,6 +327,12 @@
                 result.success &&
                 activeTab.resultViewerComponent
             ) {
+                // Save current config if keepView is enabled
+                if (activeTab.keepView && activeTab.display === "perspective") {
+                    const currentConfig =
+                        await activeTab.resultViewerComponent.saveViewerConfig();
+                    activeTab.perspectiveConfig = currentConfig;
+                }
                 await activeTab.resultViewerComponent.loadData(result.data);
             } else {
                 console.log("Error", result, activeTab.resultViewerComponent);
@@ -351,6 +364,12 @@
 
             if (error === null) {
                 if (activeTab.display === "perspective") {
+                    // Save current config if keepView is enabled
+                    if (activeTab.keepView) {
+                        const currentConfig =
+                            await activeTab.resultViewerComponent.saveViewerConfig();
+                        activeTab.perspectiveConfig = currentConfig;
+                    }
                     await activeTab.resultViewerComponent.loadData(
                         result.data.queryData,
                     );
@@ -392,6 +411,7 @@
             <QueryControls
                 bind:queryName={activeTab.queryName}
                 bind:limit={activeTab.limit}
+                bind:keepView={activeTab.keepView}
                 bind:selectedEnvironment
                 bind:language={activeTab.language}
                 bind:display={activeTab.display}
