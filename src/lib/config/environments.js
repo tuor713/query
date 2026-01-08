@@ -13,6 +13,11 @@ export const environments = [
     cluster: "uat",
   },
   {
+    id: "uat-mw",
+    name: "UAT MW",
+    cluster: "uat-mw",
+  },
+  {
     id: "prod",
     name: "Prod",
     cluster: "prod",
