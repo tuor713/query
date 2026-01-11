@@ -2,10 +2,37 @@
  * Service for handling SQL queries and execution
  */
 import { rewriteQueryWithLimit, isSpecialCommand } from "../utils/sqlParser.js";
+import { tableFromIPC } from "apache-arrow";
 
 export class QueryService {
   constructor(baseUrl) {
     this.baseUrl = baseUrl;
+  }
+
+  /**
+   * Convert Arrow result to JSON format
+   */
+  convertArrowToJson(arrowBuffer) {
+    const table = tableFromIPC(arrowBuffer);
+    const columns = table.schema.fields.map((field) => field.name);
+    const types = table.schema.fields.map((field) => field.type.toString());
+    console.log("Converting Arrow to JSON with types", types);
+    const rows = [];
+
+    for (let i = 0; i < table.numRows; i++) {
+      const row = {};
+      for (let j = 0; j < columns.length; j++) {
+        row[columns[j]] = table.getChildAt(j).get(i);
+      }
+      rows.push(row);
+    }
+
+    return {
+      success: true,
+      columns: columns,
+      types: types,
+      rows: rows,
+    };
   }
 
   /**

@@ -236,12 +236,12 @@ class RemoteTrinoRunner implements BaseRunner {
       this.username,
       this.password,
       this.environment,
-      "json",
+      "arrow",
       this.extraCredentials,
     );
     console.log("RemoteTrinoRunner.runSQL", result);
 
-    if (result.error) {
+    if (result.error || !result.success) {
       const errorResult = {
         rows: [],
         columns: [],
@@ -249,16 +249,20 @@ class RemoteTrinoRunner implements BaseRunner {
       };
       return errorResult;
     }
+
+    // Convert arrow result to JSON format
+    const jsonResult = qs.convertArrowToJson(result.data);
+
     const columns = [];
-    for (let i = 0; i < result.columns.length; i++) {
+    for (let i = 0; i < jsonResult.columns.length; i++) {
       columns.push({
-        name: result.columns[i],
-        type: result.types[i],
+        name: jsonResult.columns[i],
+        type: jsonResult.types[i],
       });
     }
 
     const outputRows: unknown[][] = [];
-    for (const row of result.rows) {
+    for (const row of jsonResult.rows) {
       if (!options.rowLimit || outputRows.length < options.rowLimit) {
         const outputrow = [];
         for (const col of columns) {
