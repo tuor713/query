@@ -11,3 +11,4 @@ This project is a simple single page web application that allows users to explor
 ## Claude Instructions
 
 - No need to run `npm run dev` to check the frontend. You can run `npm run build` to check for errors in the frontend.
+- `npm run build` needs to be run with extended memory, e.g. `export NODE_OPTIONS="--max-old-space-size=8192"`
