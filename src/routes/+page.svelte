@@ -29,6 +29,8 @@
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
+    const VERSION = "0.0.16";
+
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {
         console.log("*** DEV MODE ***");
@@ -447,7 +449,7 @@
 {#if loggedIn}
     <div class="app-container">
         <header>
-            <h1>Trino Data Explorer</h1>
+            <h1>Trino Data Explorer <span class="version">{VERSION}</span></h1>
             <div class="header-nav">
                 <div class="nav-tabs">
                     <button
@@ -529,6 +531,13 @@
         margin: 0;
         color: #333;
         font-size: 1.25rem;
+    }
+
+    .version {
+        color: #999;
+        font-size: 0.75rem;
+        font-weight: normal;
+        margin-left: 0.5rem;
     }
 
     .header-nav {
