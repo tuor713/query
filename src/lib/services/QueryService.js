@@ -22,7 +22,12 @@ export class QueryService {
     for (let i = 0; i < table.numRows; i++) {
       const row = {};
       for (let j = 0; j < columns.length; j++) {
-        row[columns[j]] = table.getChildAt(j).get(i);
+        let value = table.getChildAt(j).get(i);
+        // Convert BigInt to Number for Int64 types
+        if (typeof value === "bigint") {
+          value = Number(value);
+        }
+        row[columns[j]] = value;
       }
       rows.push(row);
     }
