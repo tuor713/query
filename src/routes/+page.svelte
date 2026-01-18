@@ -25,7 +25,7 @@
 
     import { MalloyRenderer } from "@malloydata/render";
     import { API } from "@malloydata/malloy";
-    import { Bot, Database } from "@lucide/svelte";
+    import { Bot, Database, ChevronDown, ChevronRight } from "@lucide/svelte";
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
@@ -71,6 +71,7 @@
         },
         language: storageService.getLanguage(),
         display: "perspective",
+        editorCollapsed: false,
     };
 
     if (viewParam) {
@@ -85,6 +86,8 @@
                     initialTabData.perspectiveConfig,
                 language: viewData.language || initialTabData.language,
                 display: viewData.display || initialTabData.display,
+                editorCollapsed:
+                    viewData.editorCollapsed ?? initialTabData.editorCollapsed,
             };
         } catch (error) {
             console.error("Failed to parse view parameter:", error);
@@ -101,6 +104,7 @@
             selection: "",
             limit: initialTabData.limit,
             keepView: false,
+            editorCollapsed: initialTabData.editorCollapsed,
             perspectiveConfig: initialTabData.perspectiveConfig,
             error: "",
             language: initialTabData.language,
@@ -115,6 +119,14 @@
     // Get current active tab
     function getActiveTab() {
         return tabs.find((t) => t.id === activeTabId);
+    }
+
+    function setEditorCollapsed(value) {
+        const tab = getActiveTab();
+        if (tab) {
+            tab.editorCollapsed = value;
+            tabs = [...tabs];
+        }
     }
 
     onMount(async () => {
@@ -149,6 +161,7 @@
             activeTab.display = toLoad.display ?? "perspective";
             activeTab.language = toLoad.language ?? "sql";
             activeTab.limit = toLoad.limit ?? 100000;
+            activeTab.editorCollapsed = toLoad.editorCollapsed ?? false;
             tabs = [...tabs]; // Trigger reactivity
         }
     }
@@ -171,6 +184,7 @@
             language: activeTab.language,
             display: activeTab.display,
             limit: activeTab.limit,
+            editorCollapsed: activeTab.editorCollapsed,
         };
 
         savedQueries = savedQueries
@@ -219,6 +233,7 @@
                 display: activeTab.display,
                 limit: activeTab.limit,
                 queryName: activeTab.queryName,
+                editorCollapsed: activeTab.editorCollapsed,
             };
 
             const encodedView = btoa(JSON.stringify(viewData));
@@ -398,33 +413,57 @@
 
 <svelte:window on:keydown={handleKeyDown} />
 
+{#snippet collapseButton()}
+    <button
+        class="editor-toggle"
+        onclick={() => setEditorCollapsed(!getActiveTab()?.editorCollapsed)}
+        title={getActiveTab()?.editorCollapsed ? "Show editor" : "Hide editor"}
+    >
+        {#if getActiveTab()?.editorCollapsed}
+            <ChevronRight size="1em" style="vertical-align: middle;" />
+        {:else}
+            <ChevronDown size="1em" style="vertical-align: middle;" />
+        {/if}
+        Editor
+    </button>
+{/snippet}
+
 {#snippet children(activeTab, isActive)}
     {#if activeTab}
         <div style:display={isActive ? "contents" : "none"}>
-            <div class="editors">
-                <QueryEditor
-                    bind:query={activeTab.query}
-                    bind:language={activeTab.language}
-                    bind:selection={activeTab.selection}
-                    onExecute={execute}
-                />
-            </div>
+            {#if !activeTab.editorCollapsed}
+                <div class="editors">
+                    <QueryEditor
+                        bind:query={activeTab.query}
+                        bind:language={activeTab.language}
+                        bind:selection={activeTab.selection}
+                        onExecute={execute}
+                    />
+                </div>
+            {/if}
 
-            <QueryControls
-                bind:queryName={activeTab.queryName}
-                bind:limit={activeTab.limit}
-                bind:keepView={activeTab.keepView}
-                bind:selectedEnvironment
-                bind:language={activeTab.language}
-                bind:display={activeTab.display}
-                executing={activeTab.executing}
-                lastQueryTime={activeTab.lastQueryTime}
-                onSave={saveQuery}
-                onReset={resetQuery}
-                onExecute={execute}
-                onCopyURL={copyURL}
-                onEnvironmentChange={handleEnvironmentChange}
-            />
+            <div class="controls-row">
+                <QueryControls
+                    bind:queryName={activeTab.queryName}
+                    bind:limit={activeTab.limit}
+                    bind:keepView={activeTab.keepView}
+                    bind:selectedEnvironment
+                    bind:language={activeTab.language}
+                    bind:display={activeTab.display}
+                    executing={activeTab.executing}
+                    lastQueryTime={activeTab.lastQueryTime}
+                    onSave={saveQuery}
+                    onReset={resetQuery}
+                    onExecute={execute}
+                    onCopyURL={copyURL}
+                    onEnvironmentChange={handleEnvironmentChange}
+                />
+                {#if activeTab.editorCollapsed}
+                    <div class="collapse-button-wrapper">
+                        {@render collapseButton()}
+                    </div>
+                {/if}
+            </div>
 
             <ErrorDisplay error={activeTab.error} />
 
@@ -480,7 +519,13 @@
                 />
 
                 <div id="content">
-                    <TabContainer bind:tabs bind:activeTabId>
+                    <TabContainer
+                        bind:tabs
+                        bind:activeTabId
+                        editorCollapsed={getActiveTab()?.editorCollapsed ??
+                            false}
+                        {collapseButton}
+                    >
                         {#each tabs as tab (tab.id)}
                             {@render children(tab, tab.id === activeTabId)}
                         {/each}
@@ -560,6 +605,36 @@
     .editors {
         display: grid;
         grid-template-columns: minmax(0px, auto) 0px;
+    }
+
+    .controls-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .collapse-button-wrapper {
+        margin-left: auto;
+    }
+
+    .controls-row .collapse-button-wrapper {
+        margin-top: 18px;
+    }
+
+    .editor-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: #f5f5f5;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+
+    .editor-toggle:hover {
+        background: #e5e5e5;
     }
 
     .malloyrender {

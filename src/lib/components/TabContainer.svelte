@@ -2,7 +2,9 @@
     let {
         tabs = $bindable([]),
         activeTabId = $bindable(0),
+        editorCollapsed = false,
         children,
+        collapseButton,
     } = $props();
 
     function addTab() {
@@ -16,6 +18,7 @@
             limit: 100000,
             language: "sql",
             keepView: false,
+            editorCollapsed: false,
             display: "perspective",
             perspectiveConfig: {
                 columns: [],
@@ -54,34 +57,39 @@
 </script>
 
 <div class="tab-container">
-    <div class="tab-bar">
-        {#each tabs as tab (tab.id)}
-            <div
-                class="tab {activeTabId === tab.id ? 'active' : ''}"
-                onclick={() => (activeTabId = tab.id)}
-            >
-                <input
-                    type="text"
-                    bind:value={tab.name}
-                    size={Math.min(tab.name.length, 20)}
-                    onblur={(e) => updateTabName(tab.id, e.target.value)}
-                    class="tab-name-input"
-                />
-                {#if tabs.length > 1}
-                    <button
-                        class="close-btn"
-                        onclick={(e) => {
-                            e.stopPropagation();
-                            closeTab(tab.id);
-                        }}
-                    >
-                        ×
-                    </button>
-                {/if}
+    {#if !editorCollapsed}
+        <div class="tab-bar">
+            {#each tabs as tab (tab.id)}
+                <div
+                    class="tab {activeTabId === tab.id ? 'active' : ''}"
+                    onclick={() => (activeTabId = tab.id)}
+                >
+                    <input
+                        type="text"
+                        bind:value={tab.name}
+                        size={Math.min(tab.name.length, 20)}
+                        onblur={(e) => updateTabName(tab.id, e.target.value)}
+                        class="tab-name-input"
+                    />
+                    {#if tabs.length > 1}
+                        <button
+                            class="close-btn"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                closeTab(tab.id);
+                            }}
+                        >
+                            ×
+                        </button>
+                    {/if}
+                </div>
+            {/each}
+            <button class="add-tab-btn" onclick={addTab}>+</button>
+            <div class="collapse-button-wrapper">
+                {@render collapseButton()}
             </div>
-        {/each}
-        <button class="add-tab-btn" onclick={addTab}>+</button>
-    </div>
+        </div>
+    {/if}
 
     <div class="tab-content">
         {@render children()}
@@ -99,6 +107,11 @@
         display: flex;
         background: #fff;
         gap: 2px;
+        align-items: center;
+    }
+
+    .collapse-button-wrapper {
+        margin-left: auto;
     }
 
     .tab {
