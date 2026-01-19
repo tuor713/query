@@ -52,12 +52,19 @@
         storageService.getEnvironment() || getDefaultEnvironment(),
     );
     let sidebarCollapsed = $state(false);
-    let activeView = $state("query"); // "query" or "chat"
 
     // Initialize query from URL or local storage
     const urlParams = new URLSearchParams(window.location.search);
     const queryParam = urlParams.get("query");
     const viewParam = urlParams.get("view");
+    const viewModeParam = urlParams.get("viewMode");
+
+    // Initialize activeView from URL parameter or default to "query"
+    let activeView = $state(
+        viewModeParam === "query" || viewModeParam === "chat"
+            ? viewModeParam
+            : "query",
+    ); // "query" or "chat"
 
     // Parse view parameter if present
     let initialTabData = {
