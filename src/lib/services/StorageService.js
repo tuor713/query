@@ -43,6 +43,15 @@ export class StorageService {
     return savedQueries ? JSON.parse(savedQueries) : [];
   }
 
+  saveFolders(folders) {
+    localStorage.setItem("queryFolders", JSON.stringify(folders));
+  }
+
+  getFolders() {
+    const folders = localStorage.getItem("queryFolders");
+    return folders ? JSON.parse(folders) : [];
+  }
+
   saveSystemPrompt(systemPrompt) {
     localStorage.setItem("systemPrompt", systemPrompt);
   }

@@ -52,6 +52,7 @@
         storageService.getEnvironment() || getDefaultEnvironment(),
     );
     let sidebarCollapsed = $state(false);
+    let folders = $state(storageService.getFolders());
 
     // Initialize query from URL or local storage
     const urlParams = new URLSearchParams(window.location.search);
@@ -223,6 +224,18 @@
 
     function toggleSidebar() {
         sidebarCollapsed = !sidebarCollapsed;
+    }
+
+    function handleFoldersChanged(updatedFolders) {
+        folders = updatedFolders;
+        storageService.saveFolders(folders);
+    }
+
+    function handleQueryMoved(queryName, targetFolderId) {
+        savedQueries = savedQueries.map((q) =>
+            q.name === queryName ? { ...q, folderId: targetFolderId } : q,
+        );
+        storageService.saveSavedQueries(savedQueries);
     }
 
     async function copyURL() {
@@ -518,9 +531,12 @@
             {#if activeView === "query"}
                 <SavedQueriesSidebar
                     {savedQueries}
+                    {folders}
                     currentQueryName={getActiveTab()?.queryName || ""}
                     onQuerySelected={loadSavedQuery}
                     onQueryDeleted={deleteSavedQuery}
+                    onFoldersChanged={handleFoldersChanged}
+                    onQueryMoved={handleQueryMoved}
                     isCollapsed={sidebarCollapsed}
                     onToggle={toggleSidebar}
                 />
