@@ -2,7 +2,7 @@
 
 A local-first web app for exploring datasets from Trino/Starburst. Uses [Perspective.js](https://perspective-dev.github.io/) for high-performance grids. 
 
-It includes a bunch of experimental features such as querying in Malloy[https://www.malloydata.dev/] and Wvlet[https://wvlet.org/] as well as supporting Mosaic[https://idl.uw.edu/mosaic/] and finally an AI chat.
+It includes a bunch of experimental features such as querying in [Malloy](https://www.malloydata.dev/) and [Wvlet](https://wvlet.org/) as well as supporting [Mosaic](https://idl.uw.edu/mosaic/) and finally an AI chat.
 
 ## Quick Start
 
