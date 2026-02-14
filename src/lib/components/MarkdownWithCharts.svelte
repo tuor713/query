@@ -123,14 +123,14 @@
     }
 
     .vega-spec-display {
-        margin: 1rem 0 2rem 0;
+        margin: 0 0 0.5rem 0;
         border: 1px solid #ddd;
         border-radius: 4px;
         background: #f8f9fa;
     }
 
     .vega-spec-display summary {
-        padding: 0.5rem 1rem;
+        padding: 0.5rem 0.5rem;
         cursor: pointer;
         font-weight: 500;
         user-select: none;
@@ -147,11 +147,5 @@
         border-top: 1px solid #ddd;
         border-radius: 0 0 4px 4px;
         overflow-x: auto;
-    }
-
-    .vega-spec-display code {
-        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-        font-size: 0.875rem;
-        line-height: 1.5;
     }
 </style>

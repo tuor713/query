@@ -8,6 +8,7 @@
         ChevronRight,
         Settings,
         Brain,
+        Wrench,
     } from "@lucide/svelte";
     import { marked } from "marked";
     import ResultViewer from "./ResultViewer.svelte";
@@ -752,13 +753,12 @@
                         </button>
                     {/if}
                     <span class="sender"
-                        >{message.type === "user"
-                            ? "You"
-                            : message.type === "tool" || message.isMerged
-                              ? `Tool Response: ${message.function_name || "unknown"}`
-                              : message.function_call
-                                ? `AI Assistant: Tool ${message.function_call.name}`
-                                : "AI Assistant"}</span
+                        >{#if message.type === "tool" || message.isMerged}<Wrench
+                                size={14}
+                            />
+                            {message.function_name ||
+                                "unknown"}{:else if message.type === "user"}You{:else if message.function_call}AI
+                            Assistant{:else}AI Assistant{/if}</span
                     >
                     <span class="timestamp"
                         >{message.timestamp.toLocaleTimeString()}</span
@@ -979,13 +979,10 @@
     .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        padding-left: 4rem;
-        padding-right: 4rem;
+        padding: 0.5rem 1rem;
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 2px;
     }
 
     .welcome-message {
@@ -1009,18 +1006,17 @@
     }
 
     .message {
-        padding: 1rem 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 0.375rem 0.75rem;
+        border-radius: 4px;
     }
 
     .message.user {
-        background: #667eea;
-        color: white;
+        background: transparent;
+        color: #333;
     }
 
     .message.ai {
-        background: white;
+        background: transparent;
         color: #333;
     }
 
@@ -1030,17 +1026,22 @@
         border: 1px solid #dee2e6;
     }
 
+    .message:hover {
+        background: rgba(0, 0, 0, 0.03);
+    }
+
     .message-header {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 0.5rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.85rem;
-        opacity: 0.7;
+        margin-bottom: 0.125rem;
+        font-size: 0.8125rem;
     }
 
     .message-header .timestamp {
-        margin-left: auto;
+        color: #999;
+        font-size: 0.75rem;
+        font-weight: 400;
     }
 
     .collapse-toggle {
@@ -1061,7 +1062,12 @@
     }
 
     .sender {
-        font-weight: 600;
+        font-weight: 700;
+        color: #1d1c1d;
+        font-size: 0.9375rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
     }
 
     .message-content {
@@ -1123,7 +1129,7 @@
         padding: 2px 4px;
         border-radius: 3px;
         font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-        font-size: 0.9em;
+        font-size: 0.75em;
     }
 
     .message.ai .message-content :global(pre code) {
@@ -1309,8 +1315,8 @@
 
     .chat-input {
         display: flex;
-        gap: 1rem;
-        padding: 1.5rem 2rem;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
         background: white;
         border-top: 1px solid #e0e0e0;
     }
