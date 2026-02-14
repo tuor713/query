@@ -574,7 +574,9 @@
 
             try {
                 const memory = storageService.getMemory();
-                const content = memory || "No memory stored yet.";
+                const content = memory
+                    ? "Memory loaded.\n\nContent:\n" + memory
+                    : "No memory stored yet.";
 
                 // Update the tool message with the result
                 messages = messages.map((msg) =>
@@ -621,7 +623,9 @@
 
             try {
                 storageService.saveMemory(args.memory);
-                const content = "Memory saved successfully.";
+                aiMemory = args.memory;
+                const content =
+                    "Memory saved successfully.\n\nContent:\n" + args.memory;
 
                 // Update the tool message with the result
                 messages = messages.map((msg) =>
@@ -814,9 +818,15 @@
                                                 "retrieve_doc"
                                               ? "Retrieving document..."
                                               : message.function_name ===
-                                                  "execute_malloy"
-                                                ? "Executing Malloy query..."
-                                                : "Executing query..."}</span
+                                                  "load_memory"
+                                                ? "Loading memory..."
+                                                : message.function_name ===
+                                                    "save_memory"
+                                                  ? "Saving memory..."
+                                                  : message.function_name ===
+                                                      "execute_malloy"
+                                                    ? "Executing Malloy query..."
+                                                    : "Executing query..."}</span
                                     >
                                 </div>
                             {:else if message.function_name === "search"}
@@ -826,6 +836,10 @@
                             {:else if message.function_name === "retrieve_doc"}
                                 <div class="function-result">
                                     {@html marked(message.content || "")}
+                                </div>
+                            {:else if message.function_name === "load_memory" || message.function_name === "save_memory"}
+                                <div class="function-result">
+                                    <pre><code>{message.content}</code></pre>
                                 </div>
                             {:else if message.queryResult}
                                 <ResultViewer
