@@ -29,7 +29,7 @@
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
-    const VERSION = "0.0.17";
+    const VERSION = "0.0.18";
 
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {
@@ -66,6 +66,7 @@
             ? viewModeParam
             : "query",
     ); // "query" or "chat"
+    let showDisclaimer = $state(true);
 
     // Parse view parameter if present
     let initialTabData = {
@@ -562,6 +563,7 @@
                         {extraCredentials}
                         {queryService}
                         {aiService}
+                        bind:showDisclaimer
                     />
                 </div>
             {/if}

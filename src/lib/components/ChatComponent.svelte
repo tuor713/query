@@ -15,6 +15,7 @@
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
     import SettingsDialog from "./SettingsDialog.svelte";
     import MemoryDialog from "./MemoryDialog.svelte";
+    import DisclaimerDialog from "./DisclaimerDialog.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
     import { getDefaultEnvironment } from "$lib/config/environments.js";
     import { StorageService, runMalloyQuery } from "$lib";
@@ -25,6 +26,7 @@
         extraCredentials = [],
         queryService,
         aiService,
+        showDisclaimer = $bindable(true),
     } = $props();
 
     const storageService = new StorageService();
@@ -935,6 +937,8 @@
     bind:memory={aiMemory}
     onSave={handleMemorySave}
 />
+
+<DisclaimerDialog bind:isOpen={showDisclaimer} />
 
 <style>
     .chat-container {
