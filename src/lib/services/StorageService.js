@@ -67,4 +67,12 @@ export class StorageService {
   getMemory() {
     return localStorage.getItem("aiMemory") || "";
   }
+
+  saveModel(model) {
+    localStorage.setItem("aiModel", model);
+  }
+
+  getModel() {
+    return localStorage.getItem("aiModel") || "gpt-oss";
+  }
 }

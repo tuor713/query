@@ -68,16 +68,19 @@ Key points:
   /**
    * Send a chat message to the AI and handle function calls
    */
-  async sendMessage(messages) {
+  async sendMessage(messages, model) {
     try {
+      const body = { messages };
+      if (model) {
+        body.model = model;
+      }
+
       const response = await fetch(`${this.baseUrl}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          messages: messages,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -170,7 +173,7 @@ Key points:
   /**
    * Process AI response and handle function calls
    */
-  async processAIResponse(chatHistory) {
+  async processAIResponse(chatHistory, model) {
     // Get custom system prompt or use default
     const customSystemPrompt = this.storageService.getSystemPrompt();
     const defaultSystemPrompt = this.getDefaultSystemPrompt();
@@ -233,7 +236,7 @@ Key points:
       }
     }
 
-    const aiResponse = await this.sendMessage(messages);
+    const aiResponse = await this.sendMessage(messages, model);
 
     return aiResponse;
   }

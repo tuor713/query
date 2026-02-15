@@ -274,11 +274,7 @@ class AIHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=4)
 
     def initialize(self):
-        # Use UniversalLLM which will automatically choose provider based on environment
-        self.llm = UniversalLLM(provider="ollama")
-        logger.info(
-            f"Initialized LLM with provider: {self.llm.get_provider()}, model: {self.llm.get_model_name()}"
-        )
+        pass
 
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -290,9 +286,16 @@ class AIHandler(tornado.web.RequestHandler):
         self.finish()
 
     @run_on_executor
-    def execute_chat_completion(self, messages, functions):
+    def execute_chat_completion(self, messages, functions, model=None):
         """Execute chat completion - runs on executor thread"""
-        return self.llm.chat_complete(messages, functions)
+        kwargs = {}
+        if model:
+            kwargs["model"] = model
+        llm = UniversalLLM(provider="ollama", **kwargs)
+        logger.info(
+            f"Using LLM provider: {llm.get_provider()}, model: {llm.get_model_name()}"
+        )
+        return llm.chat_complete(messages, functions)
 
     async def post(self):
         try:
@@ -300,8 +303,9 @@ class AIHandler(tornado.web.RequestHandler):
 
             # Extract required parameters
             messages = request_data.get("messages", [])
+            model = request_data.get("model", None)
 
-            logger.info(f"Chat completion request: {messages}")
+            logger.info(f"Chat completion request with model={model}: {messages}")
 
             if not messages:
                 raise ValueError("Missing required 'messages' parameter")
@@ -310,7 +314,9 @@ class AIHandler(tornado.web.RequestHandler):
             functions = get_available_functions()
 
             # Call LLM with functions (now runs on executor)
-            llm_response = await self.execute_chat_completion(messages, functions)
+            llm_response = await self.execute_chat_completion(
+                messages, functions, model
+            )
 
             if not llm_response.get("success"):
                 self.set_status(500)

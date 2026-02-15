@@ -34,6 +34,7 @@
     let selectedEnvironment = $state(
         storageService.getEnvironment() || getDefaultEnvironment(),
     );
+    let selectedModel = $state(storageService.getModel());
 
     let messages = $state([]);
     let currentMessage = $state("");
@@ -121,6 +122,11 @@
         storageService.saveEnvironment(selectedEnvironment);
     }
 
+    function handleModelChange(event) {
+        selectedModel = event.target.value;
+        storageService.saveModel(selectedModel);
+    }
+
     async function sendMessage() {
         if (!currentMessage.trim()) return;
 
@@ -162,8 +168,10 @@
             return;
         }
 
-        const aiResponse =
-            await aiService.processAIResponse(conversationMessages);
+        const aiResponse = await aiService.processAIResponse(
+            conversationMessages,
+            selectedModel,
+        );
         console.log(`AI response (turn ${turnCount + 1}):`, aiResponse);
 
         // If response is empty, stop the conversation
@@ -933,12 +941,21 @@
                     <Settings size={18} />
                 </button>
             </div>
-            <div class="environment-selector-wrapper">
-                <label>Environment</label>
-                <EnvironmentSelector
-                    bind:selectedEnvironment
-                    onChange={handleEnvironmentChange}
-                />
+            <div class="selectors-row">
+                <div class="environment-selector-wrapper">
+                    <label>Environment</label>
+                    <EnvironmentSelector
+                        bind:selectedEnvironment
+                        onChange={handleEnvironmentChange}
+                    />
+                </div>
+                <div class="model-selector-wrapper">
+                    <label>Model</label>
+                    <select value={selectedModel} onchange={handleModelChange}>
+                        <option value="gpt-oss">gpt-oss</option>
+                        <option value="nemotron-3-nano">nemotron-3-nano</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -969,16 +986,36 @@
         height: 100%;
     }
 
+    .selectors-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
     .environment-selector-wrapper {
         display: flex;
         flex-direction: column;
         gap: 0.125rem;
     }
 
-    .environment-selector-wrapper label {
+    .environment-selector-wrapper label,
+    .model-selector-wrapper label {
         font-size: 0.8rem;
         font-weight: 500;
         color: #888;
+    }
+
+    .model-selector-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+
+    .model-selector-wrapper select {
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.85rem;
     }
 
     .chat-messages {
