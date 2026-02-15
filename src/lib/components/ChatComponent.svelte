@@ -492,6 +492,7 @@
                 const result = await runMalloyQuery(
                     args.query,
                     args.limit || 100000,
+                    queryService.baseUrl,
                     username,
                     password,
                     selectedEnvironment,
