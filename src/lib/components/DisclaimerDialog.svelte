@@ -1,7 +1,11 @@
 <script>
     import { AlertTriangle, X } from "@lucide/svelte";
 
-    let { isOpen = $bindable(false), onAcknowledge = () => {} } = $props();
+    let {
+        isOpen = $bindable(false),
+        disclaimerText = "DISCLAIMER — AI can make mistakes, always check the results.",
+        onAcknowledge = () => {},
+    } = $props();
 
     function acknowledge() {
         onAcknowledge();
@@ -29,8 +33,7 @@
 
             <div class="modal-body">
                 <p class="disclaimer-text">
-                    DISCLAIMER &mdash; AI can make mistakes, always check the
-                    results.
+                    {disclaimerText}
                 </p>
             </div>
 

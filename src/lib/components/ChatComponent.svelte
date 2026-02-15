@@ -19,7 +19,7 @@
     import DisclaimerDialog from "./DisclaimerDialog.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
     import { getDefaultEnvironment } from "$lib/config/environments.js";
-    import { StorageService, runMalloyQuery } from "$lib";
+    import { StorageService, runMalloyQuery, getConfig } from "$lib";
 
     let {
         username = "",
@@ -986,8 +986,9 @@
                 <div class="model-selector-wrapper">
                     <label>Model</label>
                     <select value={selectedModel} onchange={handleModelChange}>
-                        <option value="gpt-oss">gpt-oss</option>
-                        <option value="nemotron-3-nano">nemotron-3-nano</option>
+                        {#each getConfig().models as model}
+                            <option value={model.id}>{model.name}</option>
+                        {/each}
                     </select>
                 </div>
             </div>
@@ -1008,7 +1009,10 @@
     onSave={handleMemorySave}
 />
 
-<DisclaimerDialog bind:isOpen={showDisclaimer} />
+<DisclaimerDialog
+    bind:isOpen={showDisclaimer}
+    disclaimerText={getConfig().disclaimer}
+/>
 
 <style>
     .chat-container {

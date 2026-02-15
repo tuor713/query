@@ -1,5 +1,5 @@
 <script>
-    import { environments } from "../config/environments";
+    import { getEnvironments } from "../config/environments";
 
     let { selectedEnvironment = $bindable(), onChange = () => {} } = $props();
 
@@ -10,7 +10,7 @@
 </script>
 
 <select bind:value={selectedEnvironment} onchange={handleChange}>
-    {#each environments as env}
+    {#each getEnvironments() as env}
         <option value={env.id}>{env.name}</option>
     {/each}
 </select>

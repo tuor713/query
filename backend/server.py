@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -340,8 +341,32 @@ class AIHandler(tornado.web.RequestHandler):
             self.write({"error": str(e)})
 
 
+# Load UI config from config.json (once at startup)
+_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+try:
+    with open(_config_path, "r") as f:
+        _ui_config = json.load(f)
+    logger.info(f"Loaded UI config from {_config_path}")
+except Exception as e:
+    logger.warning(f"Could not load config.json ({e}), using defaults")
+    _ui_config = {
+        "disclaimer": "DISCLAIMER — AI can make mistakes, always check the results.",
+        "environments": [{"id": "local", "name": "Local", "cluster": "local"}],
+        "defaultEnvironment": "local",
+        "models": [{"id": "gpt-oss", "name": "gpt-oss"}],
+        "defaultModel": "gpt-oss",
+    }
+
+
+class ConfigHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.set_header("Content-Type", "application/json")
+        self.write(_ui_config)
+
+
 app = tornado.web.Application(
     [
+        (r"/config", ConfigHandler),
         (r"/trino", TrinoArrowHandler),
         (r"/ai/chat", AIHandler),
         (r"/ai/search", SearchHandler),

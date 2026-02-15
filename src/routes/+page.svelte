@@ -6,6 +6,8 @@
         QueryService,
         StorageService,
         AIService,
+        loadConfig,
+        getConfig,
 
         // Config
         getDefaultEnvironment,
@@ -138,7 +140,11 @@
         }
     }
 
+    let configLoaded = $state(false);
+
     onMount(async () => {
+        await loadConfig(backendUrl);
+        configLoaded = true;
         await initializePerspective();
     });
 
@@ -506,7 +512,7 @@
     {/if}
 {/snippet}
 
-{#if loggedIn}
+{#if loggedIn && configLoaded}
     <div class="app-container">
         <header>
             <h1>Trino Data Explorer <span class="version">{VERSION}</span></h1>

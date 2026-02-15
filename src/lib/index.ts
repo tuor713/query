@@ -19,7 +19,8 @@ export { runMalloyQuery } from "./services/MalloyService.js";
 
 // Config
 export {
-  environments,
+  getEnvironments,
   getDefaultEnvironment,
   getEnvironmentById,
 } from "./config/environments.js";
+export { loadConfig, getConfig } from "./services/ConfigService.js";
