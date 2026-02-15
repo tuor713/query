@@ -721,6 +721,36 @@
     function getDefaultSystemPrompt() {
         return aiService.getDefaultSystemPrompt();
     }
+
+    function getToolSummary(message) {
+        const name = message.function_call?.name || message.function_name;
+        const args = message.function_call?.arguments || {};
+
+        switch (name) {
+            case "execute_sql_query":
+            case "execute_malloy": {
+                const query = args.query || message.query || "";
+                const firstLine = query.split("\n")[0].trim();
+                const truncated =
+                    firstLine.length > 50
+                        ? firstLine.slice(0, 50) + "..."
+                        : firstLine;
+                const suffix =
+                    firstLine.length <= 50 && query.includes("\n") ? "..." : "";
+                return truncated ? `${truncated}${suffix}` : "";
+            }
+            case "search":
+                return args.query || message.search_query || "";
+            case "retrieve_doc":
+                return args.doc_id || message.doc_id || "";
+            case "save_memory":
+                return "";
+            case "load_memory":
+                return "";
+            default:
+                return "";
+        }
+    }
 </script>
 
 <div class="chat-container">
@@ -765,7 +795,10 @@
                                 size={14}
                             />
                             {message.function_name ||
-                                "unknown"}{:else if message.type === "user"}You{:else if message.function_call}AI
+                                "unknown"}{#if getToolSummary(message)}<span
+                                    class="tool-summary"
+                                    >{getToolSummary(message)}</span
+                                >{/if}{:else if message.type === "user"}You{:else if message.function_call}AI
                             Assistant{:else}AI Assistant{/if}</span
                     >
                     <span class="timestamp"
@@ -1110,6 +1143,17 @@
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
+        overflow: hidden;
+    }
+
+    .tool-summary {
+        font-weight: 400;
+        color: #666;
+        font-size: 0.8125rem;
+        margin-left: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .message-content {
