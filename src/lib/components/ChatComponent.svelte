@@ -909,32 +909,37 @@
             placeholder="Ask me anything about your data..."
             rows="3"
         ></textarea>
-        <button
-            onclick={isLoading ? cancelRequest : sendMessage}
-            disabled={currentMessage.trim() === "" && !isLoading}
-            type="submit"
-        >
-            {#if isLoading}
-                <Pause />
-            {:else}
-                <Send />
-            {/if}
-        </button>
-        <button onclick={newChat} type="submit">
-            <MessageSquarePlus />
-        </button>
-        <button onclick={openMemory} type="button" title="AI Memory">
-            <Brain />
-        </button>
-        <button onclick={openSettings} type="button" title="Settings">
-            <Settings />
-        </button>
-        <div class="environment-selector-wrapper">
-            <label>Environment</label>
-            <EnvironmentSelector
-                bind:selectedEnvironment
-                onChange={handleEnvironmentChange}
-            />
+        <div class="chat-input-controls">
+            <div class="chat-input-buttons">
+                <button
+                    onclick={isLoading ? cancelRequest : sendMessage}
+                    disabled={currentMessage.trim() === "" && !isLoading}
+                    type="submit"
+                    title={isLoading ? "Cancel request" : "Send message"}
+                >
+                    {#if isLoading}
+                        <Pause size={18} />
+                    {:else}
+                        <Send size={18} />
+                    {/if}
+                </button>
+                <button onclick={newChat} type="submit" title="New chat">
+                    <MessageSquarePlus size={18} />
+                </button>
+                <button onclick={openMemory} type="button" title="AI Memory">
+                    <Brain size={18} />
+                </button>
+                <button onclick={openSettings} type="button" title="Settings">
+                    <Settings size={18} />
+                </button>
+            </div>
+            <div class="environment-selector-wrapper">
+                <label>Environment</label>
+                <EnvironmentSelector
+                    bind:selectedEnvironment
+                    onChange={handleEnvironmentChange}
+                />
+            </div>
         </div>
     </div>
 </div>
@@ -967,13 +972,13 @@
     .environment-selector-wrapper {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.125rem;
     }
 
     .environment-selector-wrapper label {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         font-weight: 500;
-        color: #555;
+        color: #888;
     }
 
     .chat-messages {
@@ -1027,7 +1032,7 @@
     }
 
     .message:hover {
-        background: rgba(0, 0, 0, 0.03);
+        background: rgba(0, 0, 0, 0.1);
     }
 
     .message-header {
@@ -1321,6 +1326,18 @@
         border-top: 1px solid #e0e0e0;
     }
 
+    .chat-input-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        align-self: flex-start;
+    }
+
+    .chat-input-buttons {
+        display: flex;
+        gap: 0.375rem;
+    }
+
     .chat-input textarea {
         flex: 1;
         border: 2px solid #e0e0e0;
@@ -1337,15 +1354,19 @@
     }
 
     .chat-input button {
-        padding: 0.5rem 1rem;
+        padding: 0.4rem;
+        width: 34px;
+        height: 34px;
         background: #667eea;
         color: white;
         border: none;
-        border-radius: 12px;
+        border-radius: 8px;
         cursor: pointer;
-        font-weight: 600;
-        font-size: 1rem;
         align-self: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
     }
 
     .chat-input button:hover:not(:disabled) {

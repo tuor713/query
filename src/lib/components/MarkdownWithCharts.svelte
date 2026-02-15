@@ -23,7 +23,7 @@
                 blocks.push({ id, spec: code.text });
                 return `<div class="vega-lite-placeholder" data-chart-id="${id}"></div>`;
             }
-            return originalCode(code, language);
+            return originalCode(code);
         };
 
         const html = marked(markdown, { renderer });
