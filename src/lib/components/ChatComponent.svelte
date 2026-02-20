@@ -171,6 +171,7 @@
         const aiResponse = await aiService.processAIResponse(
             conversationMessages,
             selectedModel,
+            username,
         );
         console.log(`AI response (turn ${turnCount + 1}):`, aiResponse);
 
@@ -254,7 +255,7 @@
             setTimeout(scrollToBottom, 10);
 
             try {
-                const result = await aiService.search(args.query);
+                const result = await aiService.search(args.query, username);
 
                 if (isLoading && result.success) {
                     // Update the tool message with the result
@@ -316,7 +317,10 @@
             setTimeout(scrollToBottom, 10);
 
             try {
-                const result = await aiService.retrieveDoc(args.doc_id);
+                const result = await aiService.retrieveDoc(
+                    args.doc_id,
+                    username,
+                );
 
                 if (isLoading && result.success) {
                     // Update the tool message with the result

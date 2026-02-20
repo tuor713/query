@@ -227,8 +227,9 @@ class SearchHandler(tornado.web.RequestHandler):
         try:
             request_data = json.loads(self.request.body)
             query = request_data.get("query", "")
+            user = request_data.get("user", "anonymous")
 
-            logger.info(f"Search request: {query}")
+            logger.info(f"Search request from user {user}: {query}")
 
             # Sample implementation with hard coded results
             sample_yaml = readFile("docs/search.yml")
@@ -256,8 +257,9 @@ class RetrieveDocHandler(tornado.web.RequestHandler):
         try:
             request_data = json.loads(self.request.body)
             doc_id = request_data.get("doc_id", "unknown")
+            user = request_data.get("user", "anonymous")
 
-            logger.info(f"Retrieve document request: {doc_id}")
+            logger.info(f"Retrieve document request from user {user}: {doc_id}")
 
             fileContents = readFile("docs/" + doc_id)
             sample_content = f"""Document: {doc_id}\n\n{fileContents}"""
@@ -305,8 +307,11 @@ class AIHandler(tornado.web.RequestHandler):
             # Extract required parameters
             messages = request_data.get("messages", [])
             model = request_data.get("model", None)
+            user = request_data.get("user", "anonymous")
 
-            logger.info(f"Chat completion request with model={model}: {messages}")
+            logger.info(
+                f"Chat completion request from user {user} with model={model}: {messages}"
+            )
 
             if not messages:
                 raise ValueError("Missing required 'messages' parameter")

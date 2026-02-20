@@ -68,11 +68,14 @@ Key points:
   /**
    * Send a chat message to the AI and handle function calls
    */
-  async sendMessage(messages, model) {
+  async sendMessage(messages, model, user) {
     try {
       const body = { messages };
       if (model) {
         body.model = model;
+      }
+      if (user) {
+        body.user = user;
       }
 
       const response = await fetch(`${this.baseUrl}/ai/chat`, {
@@ -105,16 +108,18 @@ Key points:
   /**
    * Search for documents using the AI search endpoint
    */
-  async search(query) {
+  async search(query, user) {
     try {
+      const body = { query };
+      if (user) {
+        body.user = user;
+      }
       const response = await fetch(`${this.baseUrl}/ai/search`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          query: query,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -139,16 +144,18 @@ Key points:
   /**
    * Retrieve a specific document by ID
    */
-  async retrieveDoc(docId) {
+  async retrieveDoc(docId, user) {
     try {
+      const body = { doc_id: docId };
+      if (user) {
+        body.user = user;
+      }
       const response = await fetch(`${this.baseUrl}/ai/retrieve_doc`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          doc_id: docId,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -173,7 +180,7 @@ Key points:
   /**
    * Process AI response and handle function calls
    */
-  async processAIResponse(chatHistory, model) {
+  async processAIResponse(chatHistory, model, user) {
     // Get custom system prompt or use default
     const customSystemPrompt = this.storageService.getSystemPrompt();
     const defaultSystemPrompt = this.getDefaultSystemPrompt();
@@ -236,7 +243,7 @@ Key points:
       }
     }
 
-    const aiResponse = await this.sendMessage(messages, model);
+    const aiResponse = await this.sendMessage(messages, model, user);
 
     return aiResponse;
   }
