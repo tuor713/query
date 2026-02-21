@@ -328,8 +328,11 @@
         color: #3c3c3c;
         padding: 20px;
         transition: all 0.3s ease;
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: hidden;
+        height: 100%;
+        align-self: stretch;
+        display: flex;
+        flex-direction: column;
     }
 
     .sidebar.collapsed {
@@ -371,6 +374,8 @@
 
     .sidebar ul {
         list-style-type: none;
+        overflow-y: auto;
+        flex: 1;
     }
 
     .sidebar .selected {
