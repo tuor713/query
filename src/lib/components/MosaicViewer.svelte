@@ -60,6 +60,13 @@ height: 600`);
         console.log("Appendend AST");
     }
 
+    export async function clearData() {
+        await vg.coordinator().exec(["DROP TABLE IF EXISTS results"]);
+        vg.coordinator().clear();
+        const root = document.getElementById("mosaic-content");
+        if (root) root.innerHTML = "";
+    }
+
     export async function loadData(bytes) {
         console.log("Loading data to DuckDB");
         const conn = await db.getConnection();

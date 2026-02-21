@@ -210,7 +210,7 @@
         storageService.saveSavedQueries(savedQueries);
     }
 
-    function resetQuery() {
+    async function resetQuery() {
         const activeTab = getActiveTab();
         if (activeTab) {
             activeTab.query = "";
@@ -220,6 +220,9 @@
                 plugin: "datagrid",
                 plugin_config: { edit_mode: "EDIT" },
             };
+            if (activeTab.resultViewerComponent?.clearData) {
+                await activeTab.resultViewerComponent.clearData();
+            }
             tabs = [...tabs]; // Trigger reactivity
         }
     }

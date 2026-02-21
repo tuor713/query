@@ -74,6 +74,12 @@
         }
     }
 
+    export async function clearData() {
+        if (viewer) {
+            viewer.eject();
+        }
+    }
+
     export async function saveViewerConfig() {
         if (viewer) {
             return await viewer.save();
