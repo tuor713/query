@@ -27,7 +27,7 @@
 
     import { MalloyRenderer } from "@malloydata/render";
     import { API } from "@malloydata/malloy";
-    import { Bot, Database, ChevronDown, ChevronRight } from "@lucide/svelte";
+    import { Bot, Database, ChevronDown, ChevronRight, LogOut } from "@lucide/svelte";
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
@@ -533,6 +533,13 @@
                     >
                         <Bot size="1em" /> AI Chat <i>(alpha)</i>
                     </button>
+                    <button
+                        class="nav-tab logout-btn"
+                        onclick={() => { loggedIn = false; password = ""; }}
+                        title="Logout"
+                    >
+                        <LogOut size="1em" /> Logout
+                    </button>
                 </div>
             </div>
         </header>
@@ -719,6 +726,16 @@
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .nav-tab.logout-btn {
+        margin-left: 0.5rem;
+        color: #888;
+    }
+
+    .nav-tab.logout-btn:hover {
+        background: #fee2e2;
+        color: #dc2626;
     }
 
     #chat-content {
