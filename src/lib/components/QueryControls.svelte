@@ -1,6 +1,6 @@
 <script>
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
-    import { Save, Link } from "@lucide/svelte";
+    import { Save, Link, CirclePlay, Eraser } from "@lucide/svelte";
 
     let {
         queryName = $bindable(""),
@@ -53,7 +53,7 @@
             <button onclick={onSave}
                 ><Save size="1em" style="vertical-align: middle;" /></button
             >
-            <button onclick={onReset}>Reset</button>
+            <button onclick={onReset} title="Reset"><Eraser size="1em" style="vertical-align: middle;" /></button>
             <div class="copy-url-container">
                 <button
                     onclick={handleCopyURL}
@@ -111,27 +111,14 @@
         </div>
     {/if}
 
-    <div class="control-group">
-        <label>&nbsp;</label>
-        <div class="action-buttons">
-            <button id="run" onclick={onExecute} disabled={executing}>
-                {#if executing}
-                    Running...
-                {:else}
-                    Run
-                {/if}
-            </button>
-        </div>
+    <div class="run-group">
+        {#if lastQueryTime > 0}
+            <span class="query-time">{formatQueryTime(lastQueryTime)}</span>
+        {/if}
+        <button id="run" onclick={onExecute} disabled={executing} title="Run query">
+            <CirclePlay size="1.2em" />
+        </button>
     </div>
-
-    {#if lastQueryTime > 0}
-        <div class="control-group">
-            <label>Last Query Time</label>
-            <span id="lastQueryTime">
-                {formatQueryTime(lastQueryTime)}
-            </span>
-        </div>
-    {/if}
 </div>
 
 <style>
@@ -139,8 +126,22 @@
         display: flex;
         flex-wrap: wrap;
         gap: 15px;
-        align-items: flex-start;
+        align-items: flex-end;
         margin-top: 5px;
+        width: 100%;
+    }
+
+    .run-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: auto;
+    }
+
+    .query-time {
+        font-size: 0.8em;
+        color: #888;
+        white-space: nowrap;
     }
 
     .control-group {
@@ -161,17 +162,29 @@
         align-items: center;
     }
 
-    .action-buttons {
-        display: flex;
-        gap: 5px;
-    }
-
     .limit-input {
         width: 5rem;
     }
 
     #run {
-        width: fit-content;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+        padding: 6px 8px;
+    }
+
+    #run:hover:not(:disabled) {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+
+    #run:disabled {
+        background: #93c5fd;
+        border-color: #93c5fd;
+        opacity: 1;
     }
 
     input,
