@@ -31,3 +31,7 @@ Visit frontend at `http://localhost:5173/`.
 export NODE_OPTIONS="--max-old-space-size=8192"
 npm run build
 ```
+
+## Notes on Wvlet
+
+The default npm package has wrong dist paths - fix by updating package.json with actual paths.
