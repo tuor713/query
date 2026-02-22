@@ -82,7 +82,9 @@
 
     export async function saveViewerConfig() {
         if (viewer) {
-            return await viewer.save();
+            const config = await viewer.save();
+            const { table, ...rest } = config;
+            return rest;
         }
         return { columns: [], plugin: "datagrid" };
     }
