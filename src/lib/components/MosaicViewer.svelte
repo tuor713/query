@@ -6,12 +6,17 @@
     import { Pencil } from "@lucide/svelte";
     import Monaco from "svelte-monaco";
 
-    let spec = $state(`input: table
+    let { initialSpec = null } = $props();
+
+    let spec = $state(
+        initialSpec ??
+            `input: table
 from: results
 width: 800
-height: 600`);
+height: 600`,
+    );
 
-    let expanded = $state(true);
+    let expanded = $state(initialSpec == null);
 
     // Monaco editor options for YAML
     const editorOptions = {
@@ -60,7 +65,17 @@ height: 600`);
         console.log("Appendend AST");
     }
 
+    export function getSpec() {
+        return spec;
+    }
+
     export async function clearData() {
+        spec =
+            initialSpec ??
+            `input: table
+from: results
+width: 800
+height: 600`;
         await vg.coordinator().exec(["DROP TABLE IF EXISTS results"]);
         vg.coordinator().clear();
         const root = document.getElementById("mosaic-content");

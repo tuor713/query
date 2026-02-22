@@ -27,7 +27,13 @@
 
     import { MalloyRenderer } from "@malloydata/render";
     import { API } from "@malloydata/malloy";
-    import { Bot, Database, ChevronDown, ChevronRight, LogOut } from "@lucide/svelte";
+    import {
+        Bot,
+        Database,
+        ChevronDown,
+        ChevronRight,
+        LogOut,
+    } from "@lucide/svelte";
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
@@ -80,6 +86,7 @@
             plugin: "datagrid",
             plugin_config: { edit_mode: "EDIT" },
         },
+        mosaicSpec: null,
         language: storageService.getLanguage(),
         display: "perspective",
         editorCollapsed: false,
@@ -95,6 +102,7 @@
                 perspectiveConfig:
                     viewData.perspectiveConfig ||
                     initialTabData.perspectiveConfig,
+                mosaicSpec: viewData.mosaicSpec || initialTabData.mosaicSpec,
                 language: viewData.language || initialTabData.language,
                 display: viewData.display || initialTabData.display,
                 editorCollapsed:
@@ -117,6 +125,7 @@
             keepView: false,
             editorCollapsed: initialTabData.editorCollapsed,
             perspectiveConfig: initialTabData.perspectiveConfig,
+            mosaicSpec: initialTabData.mosaicSpec,
             error: "",
             language: initialTabData.language,
             display: initialTabData.display,
@@ -173,6 +182,7 @@
                 plugin: "datagrid",
                 plugin_config: { edit_mode: "EDIT" },
             };
+            activeTab.mosaicSpec = toLoad.mosaicSpec ?? null;
             activeTab.display = toLoad.display ?? "perspective";
             activeTab.language = toLoad.language ?? "sql";
             activeTab.limit = toLoad.limit ?? 100000;
@@ -188,14 +198,23 @@
 
     async function saveQuery() {
         const activeTab = getActiveTab();
-        if (!activeTab || !activeTab.resultViewerComponent) return;
+        if (!activeTab) return;
 
-        const config = await activeTab.resultViewerComponent.saveViewerConfig();
+        let perspectiveConfig = activeTab.perspectiveConfig;
+        let mosaicSpec = activeTab.mosaicSpec;
+
+        if (activeTab.display === "perspective") {
+            perspectiveConfig =
+                await activeTab.resultViewerComponent.saveViewerConfig();
+        } else if (activeTab.display === "mosaic") {
+            mosaicSpec = activeTab.resultViewerComponent.getSpec();
+        }
 
         const newQuery = {
             name: activeTab.queryName,
             query: activeTab.query,
-            perspectiveConfig: config,
+            perspectiveConfig,
+            mosaicSpec,
             language: activeTab.language,
             display: activeTab.display,
             limit: activeTab.limit,
@@ -220,6 +239,8 @@
                 plugin: "datagrid",
                 plugin_config: { edit_mode: "EDIT" },
             };
+            activeTab.mosaicSpec = null;
+
             if (activeTab.resultViewerComponent?.clearData) {
                 await activeTab.resultViewerComponent.clearData();
             }
@@ -250,15 +271,23 @@
 
     async function copyURL() {
         const activeTab = getActiveTab();
-        if (!activeTab || !activeTab.resultViewerComponent) return;
+        if (!activeTab) return;
 
         try {
-            const perspectiveConfig =
-                await activeTab.resultViewerComponent.saveViewerConfig();
+            let perspectiveConfig = activeTab.perspectiveConfig;
+            let mosaicSpec = activeTab.mosaicSpec;
+
+            if (activeTab.display === "perspective") {
+                perspectiveConfig =
+                    await activeTab.resultViewerComponent.saveViewerConfig();
+            } else if (activeTab.display === "mosaic") {
+                mosaicSpec = activeTab.resultViewerComponent.getSpec();
+            }
 
             const viewData = {
                 query: activeTab.query,
-                perspectiveConfig: perspectiveConfig,
+                perspectiveConfig,
+                mosaicSpec,
                 language: activeTab.language,
                 display: activeTab.display,
                 limit: activeTab.limit,
@@ -509,7 +538,10 @@
                     class="malloyrender"
                 ></div>
             {:else}
-                <MosaicViewer bind:this={activeTab.resultViewerComponent} />
+                <MosaicViewer
+                    bind:this={activeTab.resultViewerComponent}
+                    initialSpec={activeTab.mosaicSpec}
+                />
             {/if}
         </div>
     {/if}
@@ -535,7 +567,10 @@
                     </button>
                     <button
                         class="nav-tab logout-btn"
-                        onclick={() => { loggedIn = false; password = ""; }}
+                        onclick={() => {
+                            loggedIn = false;
+                            password = "";
+                        }}
                         title="Logout"
                     >
                         <LogOut size="1em" /> Logout
