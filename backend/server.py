@@ -371,7 +371,7 @@ class ConfigHandler(tornado.web.RequestHandler):
 
 app = tornado.web.Application(
     [
-        (r"/config", ConfigHandler),
+        (r"/config.json", ConfigHandler),
         (r"/trino", TrinoArrowHandler),
         (r"/ai/chat", AIHandler),
         (r"/ai/search", SearchHandler),

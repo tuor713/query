@@ -19,7 +19,7 @@ let _config = { ...DEFAULT_CONFIG };
  */
 export async function loadConfig(baseUrl) {
   try {
-    const response = await fetch(`${baseUrl}/config`);
+    const response = await fetch(`${baseUrl}/config.json`);
     if (!response.ok) {
       throw new Error(`Config fetch failed: ${response.status}`);
     }
