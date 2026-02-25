@@ -210,6 +210,7 @@
             mosaicSpec = activeTab.resultViewerComponent.getSpec();
         }
 
+        const existingQuery = savedQueries.find((q) => q.name === activeTab.queryName);
         const newQuery = {
             name: activeTab.queryName,
             query: activeTab.query,
@@ -219,6 +220,7 @@
             display: activeTab.display,
             limit: activeTab.limit,
             editorCollapsed: activeTab.editorCollapsed,
+            ...(existingQuery?.folderId ? { folderId: existingQuery.folderId } : {}),
         };
 
         savedQueries = savedQueries
