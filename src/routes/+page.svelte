@@ -113,28 +113,41 @@
         }
     }
 
-    // Tab management
-    let tabs = $state([
-        {
-            id: 1,
-            name: "Query 1",
-            query: initialTabData.query,
-            queryName: initialTabData.queryName,
-            selection: "",
-            limit: initialTabData.limit,
-            keepView: false,
-            editorCollapsed: initialTabData.editorCollapsed,
-            perspectiveConfig: initialTabData.perspectiveConfig,
-            mosaicSpec: initialTabData.mosaicSpec,
-            error: "",
-            language: initialTabData.language,
-            display: initialTabData.display,
-            lastQueryTime: 0,
-            executing: false,
-            resultViewerComponent: null,
-        },
-    ]);
-    let activeTabId = $state(1);
+    // Tab management — restore full workspace if no URL params override
+    const savedWorkspace =
+        !queryParam && !viewParam ? storageService.getWorkspace() : null;
+    let tabs = $state(
+        savedWorkspace
+            ? savedWorkspace.tabs.map((t) => ({
+                  ...t,
+                  selection: "",
+                  error: "",
+                  lastQueryTime: 0,
+                  executing: false,
+                  resultViewerComponent: null,
+              }))
+            : [
+                  {
+                      id: 1,
+                      name: "Query 1",
+                      query: initialTabData.query,
+                      queryName: initialTabData.queryName,
+                      selection: "",
+                      limit: initialTabData.limit,
+                      keepView: false,
+                      editorCollapsed: initialTabData.editorCollapsed,
+                      perspectiveConfig: initialTabData.perspectiveConfig,
+                      mosaicSpec: initialTabData.mosaicSpec,
+                      error: "",
+                      language: initialTabData.language,
+                      display: initialTabData.display,
+                      lastQueryTime: 0,
+                      executing: false,
+                      resultViewerComponent: null,
+                  },
+              ],
+    );
+    let activeTabId = $state(savedWorkspace ? savedWorkspace.activeTabId : 1);
 
     // Get current active tab
     function getActiveTab() {
@@ -148,6 +161,12 @@
             tabs = [...tabs];
         }
     }
+
+    // Persist workspace whenever tabs or activeTabId change
+    $effect(() => {
+        console.log("Persisting workspace");
+        storageService.saveWorkspace(tabs, activeTabId);
+    });
 
     let configLoaded = $state(false);
 
@@ -210,7 +229,9 @@
             mosaicSpec = activeTab.resultViewerComponent.getSpec();
         }
 
-        const existingQuery = savedQueries.find((q) => q.name === activeTab.queryName);
+        const existingQuery = savedQueries.find(
+            (q) => q.name === activeTab.queryName,
+        );
         const newQuery = {
             name: activeTab.queryName,
             query: activeTab.query,
@@ -220,7 +241,9 @@
             display: activeTab.display,
             limit: activeTab.limit,
             editorCollapsed: activeTab.editorCollapsed,
-            ...(existingQuery?.folderId ? { folderId: existingQuery.folderId } : {}),
+            ...(existingQuery?.folderId
+                ? { folderId: existingQuery.folderId }
+                : {}),
         };
 
         savedQueries = savedQueries
@@ -317,9 +340,6 @@
 
         console.log("Executing query", activeTab.query);
         console.log("Executing language", activeTab.language);
-
-        storageService.saveQuery(activeTab.query);
-        storageService.saveLanguage(activeTab.language);
 
         let queryToExecute = activeTab.query;
         if (activeTab.selection && activeTab.selection.length > 0) {

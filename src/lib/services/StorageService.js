@@ -75,4 +75,17 @@ export class StorageService {
   getModel() {
     return localStorage.getItem("aiModel") || "gpt-oss";
   }
+
+  saveWorkspace(tabs, activeTabId) {
+    const serializable = tabs.map(({ id, name, query, queryName, limit, keepView,
+        editorCollapsed, perspectiveConfig, mosaicSpec, language, display }) =>
+      ({ id, name, query, queryName, limit, keepView, editorCollapsed,
+         perspectiveConfig, mosaicSpec, language, display }));
+    localStorage.setItem("workspace", JSON.stringify({ tabs: serializable, activeTabId }));
+  }
+
+  getWorkspace() {
+    const raw = localStorage.getItem("workspace");
+    return raw ? JSON.parse(raw) : null;
+  }
 }
