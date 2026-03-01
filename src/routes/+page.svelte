@@ -398,8 +398,10 @@
             var result = null;
             var error = null;
             try {
-                const compiler = new WvletCompiler();
-                const compiledSQL = compiler.compile(queryToExecute);
+                const compiler = new WvletCompiler({ target: "trino" });
+                const compiledSQL = compiler.compile(queryToExecute, {
+                    target: "trino",
+                });
                 console.log("Compiled Wvlet to SQL:", compiledSQL);
 
                 result = await queryService.executeQuery(
