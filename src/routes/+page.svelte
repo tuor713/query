@@ -23,6 +23,7 @@
         MosaicViewer,
         TabContainer,
         ChatComponent,
+        DashboardView,
     } from "$lib";
 
     import { MalloyRenderer } from "@malloydata/render";
@@ -33,6 +34,7 @@
         ChevronDown,
         ChevronRight,
         LogOut,
+        LayoutDashboard,
     } from "@lucide/svelte";
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
@@ -70,10 +72,10 @@
 
     // Initialize activeView from URL parameter or default to "query"
     let activeView = $state(
-        viewModeParam === "query" || viewModeParam === "chat"
+        viewModeParam === "query" || viewModeParam === "chat" || viewModeParam === "dashboard"
             ? viewModeParam
             : "query",
-    ); // "query" or "chat"
+    ); // "query", "chat", or "dashboard"
     let showDisclaimer = $state(true);
 
     // Parse view parameter if present
@@ -590,6 +592,12 @@
                         <Bot size="1em" /> AI Chat <i>(alpha)</i>
                     </button>
                     <button
+                        class="nav-tab {activeView === 'dashboard' ? 'active' : ''}"
+                        onclick={() => (activeView = "dashboard")}
+                    >
+                        <LayoutDashboard size="1em" /> Dashboard <i>(alpha)</i>
+                    </button>
+                    <button
                         class="nav-tab logout-btn"
                         onclick={() => {
                             loggedIn = false;
@@ -630,7 +638,7 @@
                         {/each}
                     </TabContainer>
                 </div>
-            {:else}
+            {:else if activeView === "chat"}
                 <div id="chat-content">
                     <ChatComponent
                         {username}
@@ -639,6 +647,16 @@
                         {queryService}
                         {aiService}
                         bind:showDisclaimer
+                    />
+                </div>
+            {:else if activeView === "dashboard"}
+                <div id="dashboard-content">
+                    <DashboardView
+                        {username}
+                        {password}
+                        {extraCredentials}
+                        {selectedEnvironment}
+                        {queryService}
                     />
                 </div>
             {/if}
@@ -802,5 +820,13 @@
         flex-direction: column;
         flex-grow: 1;
         height: calc(100vh - 45px);
+    }
+
+    #dashboard-content {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        height: calc(100vh - 45px);
+        overflow: hidden;
     }
 </style>

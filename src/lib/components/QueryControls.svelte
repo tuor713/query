@@ -1,6 +1,7 @@
 <script>
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
     import { Save, Link, CirclePlay, Eraser } from "@lucide/svelte";
+    import { formatQueryTime } from "../utils/formatTime.js";
 
     let {
         queryName = $bindable(""),
@@ -28,17 +29,7 @@
         }, 2000);
     }
 
-    function formatQueryTime(ms) {
-        if (ms < 5000) {
-            return `${new Intl.NumberFormat().format(Math.round(ms))} ms`;
-        } else if (ms < 60000) {
-            return `${(ms / 1000).toFixed(1)} sec`;
-        } else {
-            const minutes = Math.floor(ms / 60000);
-            const seconds = Math.round((ms % 60000) / 1000);
-            return `${minutes} min ${seconds} sec`;
-        }
-    }
+
 </script>
 
 <div class="controls-container">
