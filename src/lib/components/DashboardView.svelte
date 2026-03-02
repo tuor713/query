@@ -10,7 +10,7 @@
     import { Play, AlertCircle, PanelLeftClose, PanelLeftOpen, Timer } from "@lucide/svelte";
     import { DashboardStorageService } from "../services/DashboardStorageService.js";
     import { formatQueryTime } from "../utils/formatTime.js";
-    import { createFetchFromTrino, createLoadTrino } from "../utils/dashboardRuntime.js";
+    import { createFetchFromTrino, createLoadTrino, createPerspectivePanel } from "../utils/dashboardRuntime.js";
     import { createGoldenBuilder } from "../utils/goldenBuilder.js";
     import QueryLogPanel from "./QueryLogPanel.svelte";
 
@@ -19,14 +19,15 @@
     const storage = new DashboardStorageService();
 
     const DEFAULT_SNIPPET = `// Dashboard snippet — available globals:
-// vg              — vgplot: vg.plot([marks...]), vg.table({from}), vg.from(), vg.barY(), etc.
-// loadTrino(tableName, sql, limit?) — fetch from Trino and load into DuckDB in one step
-// golden          — layout builder:
-//   golden.panel(title, domElement)  — wrap a DOM element as a draggable panel
-//   golden.row(...panels)            — arrange panels horizontally
-//   golden.col(...panels)            — arrange panels vertically
-//   golden.layout(container, root)   — create the GoldenLayout instance (return this)
-// coordinator     — Mosaic coordinator (shared across all panels for cross-filtering)
+// vg                    — vgplot: vg.plot([marks...]), vg.table({from}), vg.barY(), etc.
+// loadTrino(name, sql)  — fetch from Trino and load into shared DuckDB in one step
+// perspective(name)     — Perspective viewer backed by the same DuckDB table (async)
+// golden                — layout builder:
+//   golden.panel(title, element)    — wrap a DOM element as a draggable panel
+//   golden.row(...panels)           — arrange panels horizontally
+//   golden.col(...panels)           — arrange panels vertically
+//   golden.layout(container, root)  — create the GoldenLayout instance (return this)
+// coordinator           — Mosaic coordinator (shared across panels for cross-filtering)
 // duckdb, fetchFromTrino, tableFromIPC — lower-level helpers if needed
 
 await loadTrino('nodes', 'SELECT node_id, state, coordinator FROM system.runtime.nodes');
@@ -38,7 +39,15 @@ return golden.layout(container,
             vg.xLabel('State'),
             vg.yLabel('Count'),
         ])),
-        golden.panel('Raw Data', vg.table({ from: 'nodes' })),
+        golden.panel('Raw Data', await perspective('nodes', {
+            // plugin: 'datagrid',         // 'datagrid' | 'd3fc_y_bar' | 'd3fc_x_bar' | ...
+            // columns: ['node_id', 'state'],   // visible columns (default: all)
+            // group_by: ['state'],             // row pivots
+            // split_by: [],                    // column pivots
+            // aggregates: { node_id: 'count' },
+            // sort: [['node_id', 'asc']],      // [column, 'asc'|'desc']
+            // filter: [['state', '==', 'active']], // [column, op, value]
+        })),
     )
 );
 `;
@@ -137,6 +146,7 @@ return golden.layout(container,
             },
         });
         const loadTrino = createLoadTrino(fetchFromTrino, dbConnector);
+        const perspective = createPerspectivePanel(dbConnector);
         const golden = createGoldenBuilder(GoldenLayout);
 
         try {
@@ -144,13 +154,13 @@ return golden.layout(container,
             const fn = new Function(
                 "vg", "coordinator", "duckdb", "GoldenLayout",
                 "container", "fetchFromTrino", "tableFromIPC",
-                "loadTrino", "golden",
+                "loadTrino", "perspective", "golden",
                 `"use strict"; return (async () => { ${snippetCode} })();`
             );
             const result = await fn(
                 vg, coordinatorInstance, dbConnector, GoldenLayout,
                 containerEl, fetchFromTrino, tableFromIPC,
-                loadTrino, golden
+                loadTrino, perspective, golden
             );
 
             if (result && typeof result.saveLayout === "function") {

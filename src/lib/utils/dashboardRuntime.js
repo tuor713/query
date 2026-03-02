@@ -1,4 +1,8 @@
 import { tableFromIPC } from "apache-arrow";
+import perspectiveClient from "@perspective-dev/client";
+import { DuckDBHandler } from "@perspective-dev/client/dist/esm/virtual_servers/duckdb.js";
+import "@perspective-dev/viewer";
+import "@perspective-dev/viewer-datagrid";
 
 /**
  * Creates a `fetchFromTrino` function bound to the current session credentials.
@@ -57,5 +61,48 @@ export function createLoadTrino(fetchFromTrino, dbConnector) {
         const conn = await dbConnector.getConnection();
         await conn.query(`DROP TABLE IF EXISTS "${tableName}"`);
         await conn.insertArrowTable(table, { name: tableName });
+    };
+}
+
+/**
+ * Creates a `perspective(tableName, config?)` helper backed by the shared DuckDB instance.
+ *
+ * Returns an async function that:
+ *  1. Wires a DuckDBHandler virtual server over the shared DuckDB connection
+ *  2. Opens the named table (which must already be loaded via loadTrino)
+ *  3. Returns a configured <perspective-viewer> DOM element ready to drop into a GL panel
+ *
+ * The virtual server is created once per `createPerspectivePanel` call (i.e. per dashboard
+ * run) and shared across all `perspective(...)` calls within that run.
+ *
+ * @param {any} dbConnector — wasmConnector instance (shared with Mosaic coordinator)
+ * @returns {(tableName: string, config?: object) => Promise<HTMLElement>}
+ */
+export function createPerspectivePanel(dbConnector) {
+    let pspClientPromise = null;
+
+    async function getPspClient() {
+        if (!pspClientPromise) {
+            const conn = await dbConnector.getConnection();
+            const handler = new DuckDBHandler(conn);
+            const port = await perspectiveClient.createMessageHandler(handler);
+            pspClientPromise = perspectiveClient.worker(Promise.resolve(port));
+        }
+        return pspClientPromise;
+    }
+
+    return async function perspective(tableName, config = {}) {
+        const client = await getPspClient();
+        // DuckDBHandler.getHostedTables() qualifies names as "memory.<name>",
+        // so open_table must use the same qualified form.
+        const table = await client.open_table(`memory.${tableName}`);
+        const viewer = document.createElement("perspective-viewer");
+        viewer.style.width = "100%";
+        viewer.style.height = "100%";
+        await viewer.load(table);
+        if (Object.keys(config).length > 0) {
+            await viewer.restore(config);
+        }
+        return viewer;
     };
 }
