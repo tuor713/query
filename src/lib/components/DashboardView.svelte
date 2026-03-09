@@ -2,34 +2,49 @@
     import { onDestroy } from "svelte";
     import * as vg from "@uwdata/vgplot";
     import { Coordinator, wasmConnector } from "@uwdata/vgplot";
-    import { tableFromIPC } from "apache-arrow";
     import { GoldenLayout } from "golden-layout";
     import "golden-layout/dist/css/goldenlayout-base.css";
     import "golden-layout/dist/css/themes/goldenlayout-light-theme.css";
     import Monaco from "svelte-monaco";
-    import { Play, AlertCircle, PanelLeftClose, PanelLeftOpen, Timer } from "@lucide/svelte";
+    import {
+        Play,
+        AlertCircle,
+        PanelLeftClose,
+        PanelLeftOpen,
+        Timer,
+    } from "@lucide/svelte";
     import { DashboardStorageService } from "../services/DashboardStorageService.js";
     import { formatQueryTime } from "../utils/formatTime.js";
-    import { createFetchFromTrino, createLoadTrino, createPerspectivePanel } from "../utils/dashboardRuntime.js";
+    import {
+        createFetchFromTrino,
+        createLoadTrino,
+        createPerspectivePanel,
+    } from "../utils/dashboardRuntime.js";
     import { createGoldenBuilder } from "../utils/goldenBuilder.js";
     import QueryLogPanel from "./QueryLogPanel.svelte";
 
-    let { username, password, extraCredentials, selectedEnvironment, queryService } = $props();
+    let {
+        username,
+        password,
+        extraCredentials,
+        selectedEnvironment,
+        queryService,
+    } = $props();
 
     const storage = new DashboardStorageService();
 
     const DEFAULT_SNIPPET = `// Dashboard snippet — available globals:
 // vg                    — vgplot: vg.plot([marks...]), vg.table({from}), vg.barY(), etc.
-// loadTrino(name, sql)  — fetch from Trino and load into shared DuckDB in one step
+// loadTrino(name, sql)  — fetch from Trino and load into an embedded DuckDB table "name"
 // perspective(name)     — Perspective viewer backed by the same DuckDB table (async)
 // golden                — layout builder:
 //   golden.panel(title, element)    — wrap a DOM element as a draggable panel
 //   golden.row(...panels)           — arrange panels horizontally
 //   golden.col(...panels)           — arrange panels vertically
 //   golden.layout(container, root)  — create the GoldenLayout instance (return this)
-// coordinator           — Mosaic coordinator (shared across panels for cross-filtering)
-// duckdb, fetchFromTrino, tableFromIPC — lower-level helpers if needed
+// container             - The container element where the dashboard will be hosted
 
+// use await Promise.all([loadTrino(...), loadTrino(...)]) for multiple queries
 await loadTrino('nodes', 'SELECT node_id, state, coordinator FROM system.runtime.nodes');
 
 return golden.layout(container,
@@ -67,7 +82,9 @@ return golden.layout(container,
 
     // Editor panel resize/collapse
     const EDITOR_WIDTH_KEY = "dashboard_editor_width";
-    let editorWidth = $state(parseInt(localStorage.getItem(EDITOR_WIDTH_KEY) ?? "420"));
+    let editorWidth = $state(
+        parseInt(localStorage.getItem(EDITOR_WIDTH_KEY) ?? "420"),
+    );
     let editorCollapsed = $state(false);
     let bodyEl = $state(null);
     let dragging = false;
@@ -87,7 +104,10 @@ return golden.layout(container,
     function onMousemove(e) {
         if (!dragging || !bodyEl) return;
         const rect = bodyEl.getBoundingClientRect();
-        editorWidth = Math.max(150, Math.min(e.clientX - rect.left, rect.width - 200));
+        editorWidth = Math.max(
+            150,
+            Math.min(e.clientX - rect.left, rect.width - 200),
+        );
         glInstance?.updateRootSize();
     }
 
@@ -118,13 +138,17 @@ return golden.layout(container,
         showQueryLog = false;
 
         if (glInstance) {
-            try { glInstance.destroy(); } catch (_) {}
+            try {
+                glInstance.destroy();
+            } catch (_) {}
             glInstance = null;
         }
         containerEl.innerHTML = "";
 
         if (coordinatorInstance) {
-            try { coordinatorInstance.clear(); } catch (_) {}
+            try {
+                coordinatorInstance.clear();
+            } catch (_) {}
         }
 
         coordinatorInstance = new Coordinator();
@@ -135,42 +159,61 @@ return golden.layout(container,
         storage.saveSnippet(snippetCode);
 
         const fetchFromTrino = createFetchFromTrino({
-            queryService, username, password, selectedEnvironment, extraCredentials,
+            queryService,
+            username,
+            password,
+            selectedEnvironment,
+            extraCredentials,
             logQueryStatus: (entry) => {
                 if (entry.status === "running") {
                     queryLog = [...queryLog, entry];
                 } else {
                     // Replace the matching running entry with the completed one
-                    queryLog = queryLog.map(q => q.sql === entry.sql && q.status === "running" ? entry : q);
+                    queryLog = queryLog.map((q) =>
+                        q.sql === entry.sql && q.status === "running"
+                            ? entry
+                            : q,
+                    );
                 }
             },
         });
         const loadTrino = createLoadTrino(fetchFromTrino, dbConnector);
-        const perspective = createPerspectivePanel(dbConnector);
+        const perspective = createPerspectivePanel(
+            dbConnector,
+            coordinatorInstance,
+        );
         const golden = createGoldenBuilder(GoldenLayout);
 
         try {
             // eslint-disable-next-line no-new-func
             const fn = new Function(
-                "vg", "coordinator", "duckdb", "GoldenLayout",
-                "container", "fetchFromTrino", "tableFromIPC",
-                "loadTrino", "perspective", "golden",
-                `"use strict"; return (async () => { ${snippetCode} })();`
+                "vg",
+                "container",
+                "loadTrino",
+                "perspective",
+                "golden",
+                `"use strict"; return (async () => { ${snippetCode} })();`,
             );
             const result = await fn(
-                vg, coordinatorInstance, dbConnector, GoldenLayout,
-                containerEl, fetchFromTrino, tableFromIPC,
-                loadTrino, perspective, golden
+                vg,
+                containerEl,
+                loadTrino,
+                perspective,
+                golden,
             );
 
             if (result && typeof result.saveLayout === "function") {
                 glInstance = result;
                 glInstance.on("stateChanged", () => {
-                    try { storage.saveLayoutState(glInstance.saveLayout()); } catch (_) {}
+                    try {
+                        storage.saveLayoutState(glInstance.saveLayout());
+                    } catch (_) {}
                 });
                 const savedLayout = storage.getLayoutState();
                 if (savedLayout) {
-                    try { glInstance.loadLayout(savedLayout); } catch (_) {}
+                    try {
+                        glInstance.loadLayout(savedLayout);
+                    } catch (_) {}
                 }
             }
         } catch (err) {
@@ -183,14 +226,26 @@ return golden.layout(container,
     }
 
     onDestroy(() => {
-        if (glInstance) { try { glInstance.destroy(); } catch (_) {} }
-        if (coordinatorInstance) { try { coordinatorInstance.clear(); } catch (_) {} }
+        if (glInstance) {
+            try {
+                glInstance.destroy();
+            } catch (_) {}
+        }
+        if (coordinatorInstance) {
+            try {
+                coordinatorInstance.clear();
+            } catch (_) {}
+        }
     });
 </script>
 
 <div class="dashboard-root">
     <div class="toolbar">
-        <button class="icon-btn" onclick={() => (editorCollapsed = !editorCollapsed)} title={editorCollapsed ? "Show editor" : "Hide editor"}>
+        <button
+            class="icon-btn"
+            onclick={() => (editorCollapsed = !editorCollapsed)}
+            title={editorCollapsed ? "Show editor" : "Hide editor"}
+        >
             {#if editorCollapsed}
                 <PanelLeftOpen size="1em" />
             {:else}
@@ -203,9 +258,17 @@ return golden.layout(container,
         </button>
         <span class="hint">Ctrl+Enter to run</span>
         {#if queryLog.length > 0 && !running}
-            <button class="icon-btn" onclick={() => (showQueryLog = !showQueryLog)} title="Query timings">
+            <button
+                class="icon-btn"
+                onclick={() => (showQueryLog = !showQueryLog)}
+                title="Query timings"
+            >
                 <Timer size="1em" />
-                <span class="timer-label">{formatQueryTime(Math.max(...queryLog.map(q => q.elapsed)))}</span>
+                <span class="timer-label"
+                    >{formatQueryTime(
+                        Math.max(...queryLog.map((q) => q.elapsed)),
+                    )}</span
+                >
             </button>
         {/if}
     </div>
@@ -222,9 +285,16 @@ return golden.layout(container,
     <div class="body" bind:this={bodyEl}>
         {#if !editorCollapsed}
             <div class="editor-pane" style="width:{editorWidth}px">
-                <Monaco bind:value={snippetCode} options={editorOptions} onkeydown={(e) => {
-                    if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
-                }} />
+                <Monaco
+                    bind:value={snippetCode}
+                    options={editorOptions}
+                    onkeydown={(e) => {
+                        if (e.ctrlKey && e.key === "Enter") {
+                            e.preventDefault();
+                            run();
+                        }
+                    }}
+                />
             </div>
             <div class="splitter" onmousedown={onSplitterMousedown}></div>
         {/if}
@@ -265,12 +335,23 @@ return golden.layout(container,
         cursor: pointer;
     }
 
-    .run-btn:hover:not(:disabled) { background: #1d4ed8; }
-    .run-btn:disabled { opacity: 0.6; cursor: default; }
+    .run-btn:hover:not(:disabled) {
+        background: #1d4ed8;
+    }
+    .run-btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
 
-    .hint { font-size: 0.75rem; color: #999; }
+    .hint {
+        font-size: 0.75rem;
+        color: #999;
+    }
 
-    .timer-label { font-size: 0.75rem; margin-left: 0.25rem; }
+    .timer-label {
+        font-size: 0.75rem;
+        margin-left: 0.25rem;
+    }
 
     .error-banner {
         display: flex;
@@ -302,7 +383,9 @@ return golden.layout(container,
         color: #444;
     }
 
-    .icon-btn:hover { background: #e5e5e5; }
+    .icon-btn:hover {
+        background: #e5e5e5;
+    }
 
     .body {
         display: flex;
@@ -326,7 +409,9 @@ return golden.layout(container,
         transition: background 0.15s;
     }
 
-    .splitter:hover { background: #aaa; }
+    .splitter:hover {
+        background: #aaa;
+    }
 
     .gl-pane {
         flex: 1;
@@ -337,9 +422,13 @@ return golden.layout(container,
 
     :global(.lm_goldenlayout) {
         position: absolute !important;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
     }
 
-    :global(.lm_content) { background: white !important; }
+    :global(.lm_content) {
+        background: white !important;
+    }
 </style>
