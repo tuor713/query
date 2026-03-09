@@ -15,4 +15,22 @@ export class DashboardStorageService {
     const raw = localStorage.getItem("dashboard_layout");
     return raw ? JSON.parse(raw) : null;
   }
+
+  saveDashboards(dashboards) {
+    localStorage.setItem("savedDashboards", JSON.stringify(dashboards));
+  }
+
+  getDashboards() {
+    const raw = localStorage.getItem("savedDashboards");
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  saveDashboardFolders(folders) {
+    localStorage.setItem("dashboardFolders", JSON.stringify(folders));
+  }
+
+  getDashboardFolders() {
+    const raw = localStorage.getItem("dashboardFolders");
+    return raw ? JSON.parse(raw) : [];
+  }
 }

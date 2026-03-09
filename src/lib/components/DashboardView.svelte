@@ -12,8 +12,11 @@
         PanelLeftClose,
         PanelLeftOpen,
         Timer,
+        Save,
+        FilePlus2,
     } from "@lucide/svelte";
     import { DashboardStorageService } from "../services/DashboardStorageService.js";
+    import SavedItemsSidebar from "./SavedItemsSidebar.svelte";
     import { formatQueryTime } from "../utils/formatTime.js";
     import {
         createFetchFromTrino,
@@ -32,6 +35,65 @@
     } = $props();
 
     const storage = new DashboardStorageService();
+
+    // Saved dashboards sidebar state
+    let savedDashboards = $state(storage.getDashboards());
+    let dashboardFolders = $state(storage.getDashboardFolders());
+    let currentDashboardName = $state("");
+    let sidebarCollapsed = $state(false);
+
+    function saveDashboard() {
+        if (!currentDashboardName.trim()) return;
+        const name = currentDashboardName.trim();
+        const existing = savedDashboards.find((d) => d.name === name);
+        const entry = {
+            name,
+            snippet: snippetCode,
+            folderId: existing?.folderId ?? null,
+        };
+        savedDashboards = savedDashboards
+            .filter((d) => d.name !== name)
+            .concat(entry)
+            .sort((a, b) => a.name.localeCompare(b.name));
+        storage.saveDashboards(savedDashboards);
+    }
+
+    function clearDisplay() {
+        if (glInstance) {
+            try { glInstance.destroy(); } catch (_) {}
+            glInstance = null;
+        }
+        if (coordinatorInstance) {
+            try { coordinatorInstance.clear(); } catch (_) {}
+        }
+        if (containerEl) containerEl.innerHTML = "";
+        error = null;
+        queryLog = [];
+    }
+
+    function loadDashboard(dashboard) {
+        clearDisplay();
+        currentDashboardName = dashboard.name;
+        snippetCode = dashboard.snippet;
+    }
+
+    function deleteDashboard(name) {
+        savedDashboards = savedDashboards.filter((d) => d.name !== name);
+        storage.saveDashboards(savedDashboards);
+        if (currentDashboardName === name) currentDashboardName = "";
+    }
+
+    function handleDashboardFoldersChanged(updatedFolders) {
+        dashboardFolders = updatedFolders;
+        storage.saveDashboardFolders(dashboardFolders);
+    }
+
+    function handleDashboardMoved(name, targetFolderId) {
+        savedDashboards = savedDashboards.map((d) =>
+            d.name === name ? { ...d, folderId: targetFolderId } : d,
+        );
+        storage.saveDashboards(savedDashboards);
+    }
 
     const DEFAULT_SNIPPET = `// Dashboard snippet — available globals:
 // vg                    — vgplot: vg.plot([marks...]), vg.table({from}), vg.barY(), etc.
@@ -271,6 +333,30 @@ return golden.layout(container,
                 >
             </button>
         {/if}
+        <div class="save-row">
+            <input
+                class="name-input"
+                type="text"
+                placeholder="Dashboard name…"
+                bind:value={currentDashboardName}
+                onkeydown={(e) => { if (e.key === "Enter") saveDashboard(); }}
+            />
+            <button
+                class="icon-btn"
+                onclick={saveDashboard}
+                disabled={!currentDashboardName.trim()}
+                title="Save dashboard"
+            >
+                <Save size="1em" />
+            </button>
+            <button
+                class="icon-btn"
+                onclick={() => { clearDisplay(); snippetCode = DEFAULT_SNIPPET; currentDashboardName = ""; }}
+                title="New dashboard (reset to example)"
+            >
+                <FilePlus2 size="1em" />
+            </button>
+        </div>
     </div>
 
     {#if error}
@@ -281,6 +367,20 @@ return golden.layout(container,
     {/if}
 
     <QueryLogPanel {queryLog} {running} bind:show={showQueryLog} />
+
+    <div class="main-area">
+        <SavedItemsSidebar
+            items={savedDashboards}
+            folders={dashboardFolders}
+            currentItemName={currentDashboardName}
+            title="Saved Dashboards"
+            onItemSelected={loadDashboard}
+            onItemDeleted={deleteDashboard}
+            onFoldersChanged={handleDashboardFoldersChanged}
+            onItemMoved={handleDashboardMoved}
+            isCollapsed={sidebarCollapsed}
+            onToggle={() => (sidebarCollapsed = !sidebarCollapsed)}
+        />
 
     <div class="body" bind:this={bodyEl}>
         {#if !editorCollapsed}
@@ -299,6 +399,7 @@ return golden.layout(container,
             <div class="splitter" onmousedown={onSplitterMousedown}></div>
         {/if}
         <div class="gl-pane" bind:this={containerEl}></div>
+    </div>
     </div>
 </div>
 
@@ -385,6 +486,34 @@ return golden.layout(container,
 
     .icon-btn:hover {
         background: #e5e5e5;
+    }
+
+    .main-area {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .save-row {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: auto;
+    }
+
+    .name-input {
+        padding: 0.3rem 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        width: 180px;
+        font-family: inherit;
+    }
+
+    .name-input:focus {
+        outline: none;
+        border-color: #2563eb;
     }
 
     .body {
