@@ -39,7 +39,7 @@
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
-    const VERSION = "0.0.20";
+    const VERSION = "0.0.21";
 
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {
@@ -72,7 +72,9 @@
 
     // Initialize activeView from URL parameter or default to "query"
     let activeView = $state(
-        viewModeParam === "query" || viewModeParam === "chat" || viewModeParam === "dashboard"
+        viewModeParam === "query" ||
+            viewModeParam === "chat" ||
+            viewModeParam === "dashboard"
             ? viewModeParam
             : "query",
     ); // "query", "chat", or "dashboard"
@@ -592,7 +594,9 @@
                         <Bot size="1em" /> AI Chat <i>(alpha)</i>
                     </button>
                     <button
-                        class="nav-tab {activeView === 'dashboard' ? 'active' : ''}"
+                        class="nav-tab {activeView === 'dashboard'
+                            ? 'active'
+                            : ''}"
                         onclick={() => (activeView = "dashboard")}
                     >
                         <LayoutDashboard size="1em" /> Dashboard <i>(alpha)</i>
