@@ -822,7 +822,7 @@
                             {datasetRegistry}
                         />
                     {:else if message.type === "user"}
-                        {message.content}
+                        <span style="white-space: pre-wrap; overflow-wrap: break-word;">{message.content}</span>
                     {:else if message.isMerged && message.aiContent}
                         <MarkdownWithCharts
                             content={message.aiContent || ""}
