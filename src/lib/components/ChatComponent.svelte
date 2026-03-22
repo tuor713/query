@@ -831,7 +831,7 @@
                     {/if}
 
                     {#if message.query}
-                        <pre><code>{message.query}</code></pre>
+                        <pre class="query-pre"><code>{message.query}</code></pre>
                     {/if}
 
                     {#if message.search_query}
@@ -1278,6 +1278,18 @@
 
     .message.ai .message-content :global(em) {
         font-style: italic;
+    }
+
+    .query-pre {
+        margin: 0.5rem 0 0 0;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        overflow: hidden;
+        background: #f1f1f1;
+        border-radius: 4px;
+        padding: 8px 12px;
     }
 
     .query-block {
