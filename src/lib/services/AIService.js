@@ -62,6 +62,10 @@ Key points:
 - The dataset will be automatically loaded into the chart
 - You can all standard Vega-Lite chart types: bar, line, point, area, circle, etc.
 - By default use width=600, height=400
+
+## Current Memory
+
+{{memory}}
 `;
   }
 
@@ -187,9 +191,11 @@ Key points:
 
     // Replace {{today}} variable with actual date
     const today = new Date().toISOString().split("T")[0];
-    const systemPromptContent = (
-      customSystemPrompt || defaultSystemPrompt
-    ).replace(/\{\{today\}\}/g, today);
+    // Replace {{memory}} variable with current memory
+    const memory = this.storageService.getMemory() || "No memory stored yet.";
+    const systemPromptContent = (customSystemPrompt || defaultSystemPrompt)
+      .replace(/\{\{today\}\}/g, today)
+      .replace(/\{\{memory\}\}/g, memory);
 
     // Build messages array with system prompt and full chat history
     const messages = [
