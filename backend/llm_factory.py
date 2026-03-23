@@ -115,13 +115,25 @@ def get_available_functions() -> List[Dict]:
         },
         {
             "name": "search",
-            "description": "Search for dataset documentation and sample queries. Returns YAML of ranked results.",
+            "description": "Search knowledge files by regex against file contents. Returns YAML list of matching files with title, id, and summary.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "The search to execute."}
+                    "regex": {"type": "string", "description": "Python regex pattern to match against file contents."},
+                    "max_results": {"type": "integer", "description": "Maximum number of results to return.", "default": 10},
                 },
-                "required": ["query"],
+                "required": ["regex"],
+            },
+        },
+        {
+            "name": "ls",
+            "description": "List knowledge files by filename prefix. Returns YAML list of files with title, id, and summary.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "prefix": {"type": "string", "description": "Filename prefix to filter files. Use empty string to list all files."},
+                },
+                "required": ["prefix"],
             },
         },
         {

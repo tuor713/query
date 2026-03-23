@@ -247,7 +247,7 @@
                 function_name: "search",
                 content: "",
                 expanded: false,
-                search_query: args.query,
+                search_query: args.regex,
                 isExecuting: true,
                 timestamp: new Date(),
             };
@@ -255,7 +255,7 @@
             setTimeout(scrollToBottom, 10);
 
             try {
-                const result = await aiService.search(args.query, username);
+                const result = await aiService.search(args.regex, args.max_results ?? 10, username);
 
                 if (isLoading && result.success) {
                     // Update the tool message with the result
@@ -286,6 +286,65 @@
                 }
             } catch (error) {
                 console.error("Error executing search:", error);
+                messages = messages.map((msg) =>
+                    msg.id === toolMessageId
+                        ? {
+                              ...msg,
+                              content: `Error: ${error.message}`,
+                              isExecuting: false,
+                          }
+                        : msg,
+                );
+                toolResult = { error: error.message };
+            }
+
+            setTimeout(scrollToBottom, 10);
+        } else if (name === "ls") {
+            const toolMessageId = messageId + 1;
+
+            const toolMessage = {
+                id: toolMessageId,
+                type: "tool",
+                function_name: "ls",
+                content: "",
+                expanded: false,
+                search_query: args.prefix,
+                isExecuting: true,
+                timestamp: new Date(),
+            };
+            messages = [...messages, toolMessage];
+            setTimeout(scrollToBottom, 10);
+
+            try {
+                const result = await aiService.ls(args.prefix, username);
+
+                if (isLoading && result.success) {
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  content: result.content,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { success: true, content: result.content };
+                } else {
+                    messages = messages.map((msg) =>
+                        msg.id === toolMessageId
+                            ? {
+                                  ...msg,
+                                  content: `Error: ${result.error}`,
+                                  isExecuting: false,
+                              }
+                            : msg,
+                    );
+
+                    toolResult = { error: result.error };
+                }
+            } catch (error) {
+                console.error("Error executing ls:", error);
                 messages = messages.map((msg) =>
                     msg.id === toolMessageId
                         ? {

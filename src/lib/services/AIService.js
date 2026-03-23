@@ -110,15 +110,51 @@ Key points:
   }
 
   /**
-   * Search for documents using the AI search endpoint
+   * Search knowledge files by regex against file contents
    */
-  async search(query, user) {
+  async search(regex, maxResults, user) {
     try {
-      const body = { query };
+      const body = { regex, max_results: maxResults };
       if (user) {
         body.user = user;
       }
       const response = await fetch(`${this.baseUrl}/ai/search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const yamlContent = await response.text();
+
+      return {
+        success: true,
+        content: yamlContent,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * List knowledge files by filename prefix
+   */
+  async ls(prefix, user) {
+    try {
+      const body = { prefix: prefix ?? "" };
+      if (user) {
+        body.user = user;
+      }
+      const response = await fetch(`${this.baseUrl}/ai/ls`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

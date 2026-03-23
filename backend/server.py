@@ -213,6 +213,28 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
             self.write({"error": str(e)})
 
 
+def get_doc_metadata(filename):
+    """Extract title and summary from a markdown doc file."""
+    try:
+        content = readFile("docs/" + filename)
+        lines = content.splitlines()
+        title = filename
+        summary = ""
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("# "):
+                title = stripped[2:].strip()
+                break
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#"):
+                summary = stripped[:200]
+                break
+        return title, summary
+    except Exception:
+        return filename, ""
+
+
 class SearchHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -226,19 +248,90 @@ class SearchHandler(tornado.web.RequestHandler):
     async def post(self):
         try:
             request_data = json.loads(self.request.body)
-            query = request_data.get("query", "")
+            pattern = request_data.get("regex", "")
+            max_results = int(request_data.get("max_results", 10))
             user = request_data.get("user", "anonymous")
 
-            logger.info(f"Search request from user {user}: {query}")
+            logger.info(f"Search request from user {user}: regex={pattern!r} max_results={max_results}")
 
-            # Sample implementation with hard coded results
-            sample_yaml = readFile("docs/search.yml")
+            compiled = re.compile(pattern, re.IGNORECASE)
+            results = []
+            docs_dir = "docs"
+            for filename in sorted(os.listdir(docs_dir)):
+                if len(results) >= max_results:
+                    break
+                filepath = os.path.join(docs_dir, filename)
+                if not os.path.isfile(filepath):
+                    continue
+                try:
+                    content = readFile(filepath)
+                    if compiled.search(content):
+                        title, summary = get_doc_metadata(filename)
+                        results.append({"title": title, "id": filename, "summary": summary})
+                except Exception:
+                    continue
+
+            yaml_lines = ["results:"]
+            for r in results:
+                yaml_lines.append(f'  - title: "{r["title"]}"')
+                yaml_lines.append(f'    id: "{r["id"]}"')
+                yaml_lines.append(f'    summary: "{r["summary"]}"')
+            yaml_lines.append(f'regex: "{pattern}"')
+            yaml_lines.append(f"total_results: {len(results)}")
+            yaml_output = "\n".join(yaml_lines) + "\n"
 
             self.set_header("Content-Type", "text/yaml")
-            self.write(sample_yaml)
+            self.write(yaml_output)
 
         except Exception as e:
             logger.error(f"Search error: {e}")
+            self.set_status(500)
+            self.write({"error": str(e)})
+
+
+class LSHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        self.set_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+    async def post(self):
+        try:
+            request_data = json.loads(self.request.body)
+            prefix = request_data.get("prefix", "")
+            user = request_data.get("user", "anonymous")
+
+            logger.info(f"LS request from user {user}: prefix={prefix!r}")
+
+            docs_dir = "docs"
+            results = []
+            for filename in sorted(os.listdir(docs_dir)):
+                if not filename.startswith(prefix):
+                    continue
+                filepath = os.path.join(docs_dir, filename)
+                if not os.path.isfile(filepath):
+                    continue
+                title, summary = get_doc_metadata(filename)
+                results.append({"title": title, "id": filename, "summary": summary})
+
+            yaml_lines = ["files:"]
+            for r in results:
+                yaml_lines.append(f'  - title: "{r["title"]}"')
+                yaml_lines.append(f'    id: "{r["id"]}"')
+                yaml_lines.append(f'    summary: "{r["summary"]}"')
+            yaml_lines.append(f'prefix: "{prefix}"')
+            yaml_lines.append(f"total_files: {len(results)}")
+            yaml_output = "\n".join(yaml_lines) + "\n"
+
+            self.set_header("Content-Type", "text/yaml")
+            self.write(yaml_output)
+
+        except Exception as e:
+            logger.error(f"LS error: {e}")
             self.set_status(500)
             self.write({"error": str(e)})
 
@@ -375,6 +468,7 @@ app = tornado.web.Application(
         (r"/trino", TrinoArrowHandler),
         (r"/ai/chat", AIHandler),
         (r"/ai/search", SearchHandler),
+        (r"/ai/ls", LSHandler),
         (r"/ai/retrieve_doc", RetrieveDocHandler),
         (
             r"/(.*)",
