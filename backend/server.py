@@ -1,10 +1,10 @@
 import json
 import logging
 import os
-import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
+import duckdb
 import pandas as pd
 import pyarrow as pa
 import tornado.ioloop
@@ -13,6 +13,8 @@ import trino
 from tornado.concurrent import run_on_executor
 from trino.auth import BasicAuthentication
 
+DOCS_DB_PATH = os.environ.get("DOCS_DB_PATH", "docs.db")
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
@@ -20,6 +22,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 from llm_factory import UniversalLLM, get_available_functions
+
+docs_conn = duckdb.connect(DOCS_DB_PATH, read_only=True)
 
 
 def convertToRows(cols, tuples):
@@ -67,10 +71,6 @@ def sanitize_df(df):
 
     return df
 
-
-def readFile(filePath):
-    with open(filePath, "r") as file:
-        return file.read()
 
 
 class TrinoArrowHandler(tornado.web.RequestHandler):
@@ -213,28 +213,6 @@ class TrinoArrowHandler(tornado.web.RequestHandler):
             self.write({"error": str(e)})
 
 
-def get_doc_metadata(filename):
-    """Extract title and summary from a markdown doc file."""
-    try:
-        content = readFile("docs/" + filename)
-        lines = content.splitlines()
-        title = filename
-        summary = ""
-        for line in lines:
-            stripped = line.strip()
-            if stripped.startswith("# "):
-                title = stripped[2:].strip()
-                break
-        for line in lines:
-            stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
-                summary = stripped[:200]
-                break
-        return title, summary
-    except Exception:
-        return filename, ""
-
-
 class SearchHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -254,22 +232,16 @@ class SearchHandler(tornado.web.RequestHandler):
 
             logger.info(f"Search request from user {user}: regex={pattern!r} max_results={max_results}")
 
-            compiled = re.compile(pattern, re.IGNORECASE)
-            results = []
-            docs_dir = "docs"
-            for filename in sorted(os.listdir(docs_dir)):
-                if len(results) >= max_results:
-                    break
-                filepath = os.path.join(docs_dir, filename)
-                if not os.path.isfile(filepath):
-                    continue
-                try:
-                    content = readFile(filepath)
-                    if compiled.search(content):
-                        title, summary = get_doc_metadata(filename)
-                        results.append({"title": title, "id": filename, "summary": summary})
-                except Exception:
-                    continue
+            with docs_conn.cursor() as conn:
+                rows = conn.execute(
+                    "SELECT path, title, summary FROM document"
+                    " WHERE regexp_matches(COALESCE(title, ''), ?, 'i')"
+                    "    OR regexp_matches(COALESCE(content, ''), ?, 'i')"
+                    " ORDER BY path LIMIT ?",
+                    [pattern, pattern, max_results],
+                ).fetchall()
+
+            results = [{"title": title or path, "id": path, "summary": summary or ""} for path, title, summary in rows]
 
             yaml_lines = ["results:"]
             for r in results:
@@ -307,16 +279,13 @@ class LSHandler(tornado.web.RequestHandler):
 
             logger.info(f"LS request from user {user}: prefix={prefix!r}")
 
-            docs_dir = "docs"
-            results = []
-            for filename in sorted(os.listdir(docs_dir)):
-                if not filename.startswith(prefix):
-                    continue
-                filepath = os.path.join(docs_dir, filename)
-                if not os.path.isfile(filepath):
-                    continue
-                title, summary = get_doc_metadata(filename)
-                results.append({"title": title, "id": filename, "summary": summary})
+            with docs_conn.cursor() as conn:
+                rows = conn.execute(
+                    "SELECT path, title, summary FROM document WHERE path LIKE ? ORDER BY path",
+                    [prefix + "%"],
+                ).fetchall()
+
+            results = [{"title": title or path, "id": path, "summary": summary or ""} for path, title, summary in rows]
 
             yaml_lines = ["files:"]
             for r in results:
@@ -354,11 +323,18 @@ class RetrieveDocHandler(tornado.web.RequestHandler):
 
             logger.info(f"Retrieve document request from user {user}: {doc_id}")
 
-            fileContents = readFile("docs/" + doc_id)
-            sample_content = f"""Document: {doc_id}\n\n{fileContents}"""
+            with docs_conn.cursor() as conn:
+                row = conn.execute(
+                    "SELECT content FROM document WHERE path = ?", [doc_id]
+                ).fetchone()
+
+            if row is None:
+                self.set_status(404)
+                self.write({"error": f"Document not found: {doc_id}"})
+                return
 
             self.set_header("Content-Type", "text/plain")
-            self.write(sample_content)
+            self.write(f"Document: {doc_id}\n\n{row[0]}")
 
         except Exception as e:
             logger.error(f"Retrieve doc error: {e}")
