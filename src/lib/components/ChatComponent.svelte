@@ -805,6 +805,10 @@
             }
             case "search":
                 return args.query || message.search_query || "";
+            case "ls": {
+                const prefix = args.prefix ?? message.search_query ?? "";
+                return `'${prefix}'`;
+            }
             case "retrieve_doc":
                 return args.doc_id || message.doc_id || "";
             case "save_memory":
@@ -919,7 +923,9 @@
                                     <span
                                         >{message.function_name === "search"
                                             ? "Searching..."
-                                            : message.function_name ===
+                                            : message.function_name === "ls"
+                                              ? "Listing documents..."
+                                              : message.function_name ===
                                                 "retrieve_doc"
                                               ? "Retrieving document..."
                                               : message.function_name ===
@@ -934,7 +940,7 @@
                                                     : "Executing query..."}</span
                                     >
                                 </div>
-                            {:else if message.function_name === "search"}
+                            {:else if message.function_name === "search" || message.function_name === "ls"}
                                 <div class="function-result">
                                     <pre><code>{message.content}</code></pre>
                                 </div>
