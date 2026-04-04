@@ -39,7 +39,7 @@
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
-    const VERSION = "0.0.21";
+    const VERSION = "0.0.22";
 
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {
