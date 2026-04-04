@@ -4,8 +4,6 @@
         Send,
         Pause,
         MessageSquarePlus,
-        ChevronDown,
-        ChevronRight,
         Settings,
         Brain,
         Wrench,
@@ -842,22 +840,14 @@
 
         {#each displayMessages as message (message.id)}
             <div class="message {message.type}">
-                <div class="message-header">
-                    {#if message.type === "tool" || message.isMerged}
-                        <button
-                            class="collapse-toggle"
-                            onclick={() => toggleMessageExpanded(message)}
-                            aria-label={message.expanded
-                                ? "Collapse"
-                                : "Expand"}
-                        >
-                            {#if message.expanded}
-                                <ChevronDown size={16} />
-                            {:else}
-                                <ChevronRight size={16} />
-                            {/if}
-                        </button>
-                    {/if}
+                <div
+                    class="message-header"
+                    class:clickable={message.type === "tool" || message.isMerged}
+                    onclick={message.type === "tool" || message.isMerged ? () => toggleMessageExpanded(message) : undefined}
+                    role={message.type === "tool" || message.isMerged ? "button" : undefined}
+                    tabindex={message.type === "tool" || message.isMerged ? 0 : undefined}
+                    onkeydown={message.type === "tool" || message.isMerged ? (e) => e.key === "Enter" && toggleMessageExpanded(message) : undefined}
+                >
                     <span class="sender"
                         >{#if message.type === "tool" || message.isMerged}<Wrench
                                 size={14}
@@ -1170,9 +1160,8 @@
     }
 
     .message.tool {
-        background: #f8f9fa;
+        background: transparent;
         color: #495057;
-        border: 1px solid #dee2e6;
     }
 
     .message:hover {
@@ -1181,7 +1170,7 @@
 
     .message-header {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         gap: 0.5rem;
         margin-bottom: 0.125rem;
         font-size: 0.8125rem;
@@ -1193,21 +1182,9 @@
         font-weight: 400;
     }
 
-    .collapse-toggle {
-        background: none;
-        border: none;
-        color: inherit;
+    .message-header.clickable {
         cursor: pointer;
-        padding: 2px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0.7;
-        transition: all 0.2s;
-    }
-
-    .collapse-toggle:hover {
-        opacity: 1;
+        user-select: none;
     }
 
     .sender {
@@ -1263,7 +1240,13 @@
     }
 
     .message.ai .message-content :global(p) {
+        margin-top: 0;
         margin-bottom: 0.8em;
+    }
+
+    .message.ai .message-content :global(p:last-child),
+    .message.tool .message-content :global(p:last-child) {
+        margin-bottom: 0;
     }
 
     .message.ai .message-content :global(ul),
