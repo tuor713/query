@@ -7,12 +7,25 @@
     { "id": "prod", "name": "Prod", "cluster": "prod" },
     { "id": "prod-nj", "name": "Prod NJ", "cluster": "prod-nj" },
     { "id": "prod-mw", "name": "Prod MW", "cluster": "prod-mw" },
-    { "id": "starburst-prod-mw", "name": "Starburst Prod MW", "cluster": "starburst-prod-mw" },
-    { "id": "starburst-prod-nj", "name": "Starburst Prod NJ", "cluster": "starburst-prod-nj" },
-    { "id": "starburst-uat", "name": "Starburst UAT", "cluster": "starburst-uat" }
+    {
+      "id": "starburst-prod-mw",
+      "name": "Starburst Prod MW",
+      "cluster": "starburst-prod-mw"
+    },
+    {
+      "id": "starburst-prod-nj",
+      "name": "Starburst Prod NJ",
+      "cluster": "starburst-prod-nj"
+    },
+    {
+      "id": "starburst-uat",
+      "name": "Starburst UAT",
+      "cluster": "starburst-uat"
+    }
   ],
   "defaultEnvironment": "uat",
   "models": [
+    { "id": "gemma4", "name": "gemma4" },
     { "id": "gpt-oss", "name": "gpt-oss" },
     { "id": "nemotron-3-nano", "name": "nemotron-3-nano" }
   ],
