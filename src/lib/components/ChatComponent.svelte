@@ -188,6 +188,7 @@
             type: "ai",
             content: aiResponse.text,
             function_call: aiResponse.function_call,
+            extra_data: aiResponse.extra_data,
             timestamp: new Date(),
         };
 
@@ -253,7 +254,11 @@
             setTimeout(scrollToBottom, 10);
 
             try {
-                const result = await aiService.search(args.regex, args.max_results ?? 10, username);
+                const result = await aiService.search(
+                    args.regex,
+                    args.max_results ?? 10,
+                    username,
+                );
 
                 if (isLoading && result.success) {
                     // Update the tool message with the result
@@ -842,11 +847,22 @@
             <div class="message {message.type}">
                 <div
                     class="message-header"
-                    class:clickable={message.type === "tool" || message.isMerged}
-                    onclick={message.type === "tool" || message.isMerged ? () => toggleMessageExpanded(message) : undefined}
-                    role={message.type === "tool" || message.isMerged ? "button" : undefined}
-                    tabindex={message.type === "tool" || message.isMerged ? 0 : undefined}
-                    onkeydown={message.type === "tool" || message.isMerged ? (e) => e.key === "Enter" && toggleMessageExpanded(message) : undefined}
+                    class:clickable={message.type === "tool" ||
+                        message.isMerged}
+                    onclick={message.type === "tool" || message.isMerged
+                        ? () => toggleMessageExpanded(message)
+                        : undefined}
+                    role={message.type === "tool" || message.isMerged
+                        ? "button"
+                        : undefined}
+                    tabindex={message.type === "tool" || message.isMerged
+                        ? 0
+                        : undefined}
+                    onkeydown={message.type === "tool" || message.isMerged
+                        ? (e) =>
+                              e.key === "Enter" &&
+                              toggleMessageExpanded(message)
+                        : undefined}
                 >
                     <span class="sender"
                         >{#if message.type === "tool" || message.isMerged}<Wrench
@@ -875,7 +891,10 @@
                             {datasetRegistry}
                         />
                     {:else if message.type === "user"}
-                        <span style="white-space: pre-wrap; overflow-wrap: break-word;">{message.content}</span>
+                        <span
+                            style="white-space: pre-wrap; overflow-wrap: break-word;"
+                            >{message.content}</span
+                        >
                     {:else if message.isMerged && message.aiContent}
                         <MarkdownWithCharts
                             content={message.aiContent || ""}
@@ -884,7 +903,8 @@
                     {/if}
 
                     {#if message.query}
-                        <pre class="query-pre"><code>{message.query}</code></pre>
+                        <pre class="query-pre"><code>{message.query}</code
+                            ></pre>
                     {/if}
 
                     {#if message.search_query}
@@ -916,18 +936,18 @@
                                             : message.function_name === "ls"
                                               ? "Listing documents..."
                                               : message.function_name ===
-                                                "retrieve_doc"
-                                              ? "Retrieving document..."
-                                              : message.function_name ===
-                                                  "load_memory"
-                                                ? "Loading memory..."
+                                                  "retrieve_doc"
+                                                ? "Retrieving document..."
                                                 : message.function_name ===
-                                                    "save_memory"
-                                                  ? "Saving memory..."
+                                                    "load_memory"
+                                                  ? "Loading memory..."
                                                   : message.function_name ===
-                                                      "execute_malloy"
-                                                    ? "Executing Malloy query..."
-                                                    : "Executing query..."}</span
+                                                      "save_memory"
+                                                    ? "Saving memory..."
+                                                    : message.function_name ===
+                                                        "execute_malloy"
+                                                      ? "Executing Malloy query..."
+                                                      : "Executing query..."}</span
                                     >
                                 </div>
                             {:else if message.function_name === "search" || message.function_name === "ls"}

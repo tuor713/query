@@ -1,12 +1,16 @@
 """
 LLM utility module for Ollama-based AI chat functionality
 """
-from typing import Dict, List, Optional, Any
+
+from typing import Any, Dict, List, Optional
+
 import ollama
 
 
 class OllamaLLM:
-    def __init__(self, base_url: str = "http://localhost:11434", model: str = "gpt-oss"):
+    def __init__(
+        self, base_url: str = "http://localhost:11434", model: str = "gpt-oss"
+    ):
         """
         Initialize OllamaLLM with Ollama Python client
 
@@ -17,7 +21,9 @@ class OllamaLLM:
         self.client = ollama.Client(host=base_url)
         self.model = model
 
-    def chat_complete(self, messages: List[Dict[str, str]], functions: Optional[List[Dict]] = None) -> Dict[str, Any]:
+    def chat_complete(
+        self, messages: List[Dict[str, str]], functions: Optional[List[Dict]] = None
+    ) -> Dict[str, Any]:
         """
         Send a chat completion request to Ollama
 
@@ -36,7 +42,7 @@ class OllamaLLM:
                 "options": {
                     "temperature": 0.7,
                     "top_p": 0.9,
-                }
+                },
             }
 
             # Convert functions to Ollama tools format if provided
@@ -61,7 +67,7 @@ class OllamaLLM:
                 first_call = tool_calls[0]
                 function_call = {
                     "name": first_call.get("function", {}).get("name"),
-                    "arguments": first_call.get("function", {}).get("arguments", {})
+                    "arguments": first_call.get("function", {}).get("arguments", {}),
                 }
 
             return {
@@ -69,19 +75,14 @@ class OllamaLLM:
                 "text": response_text,
                 "function_call": function_call,
                 "model": self.model,
-                "raw_message": message  # Include full message for debugging
+                "extra_data": {"thought_signature": "nonce"},
+                "raw_message": message,  # Include full message for debugging
             }
 
         except ollama.ResponseError as e:
-            return {
-                "success": False,
-                "error": f"Ollama API error: {str(e)}"
-            }
+            return {"success": False, "error": f"Ollama API error: {str(e)}"}
         except Exception as e:
-            return {
-                "success": False,
-                "error": f"Unexpected error: {str(e)}"
-            }
+            return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
     def _convert_functions_to_tools(self, functions: List[Dict]) -> List[Dict]:
         """
@@ -101,7 +102,7 @@ class OllamaLLM:
                 "function": {
                     "name": func.get("name"),
                     "description": func.get("description", ""),
-                }
+                },
             }
 
             # Add parameters if they exist

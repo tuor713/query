@@ -72,7 +72,6 @@ def sanitize_df(df):
     return df
 
 
-
 class TrinoArrowHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=4)
 
@@ -230,7 +229,9 @@ class SearchHandler(tornado.web.RequestHandler):
             max_results = int(request_data.get("max_results", 10))
             user = request_data.get("user", "anonymous")
 
-            logger.info(f"Search request from user {user}: regex={pattern!r} max_results={max_results}")
+            logger.info(
+                f"Search request from user {user}: regex={pattern!r} max_results={max_results}"
+            )
 
             with docs_conn.cursor() as conn:
                 rows = conn.execute(
@@ -241,7 +242,10 @@ class SearchHandler(tornado.web.RequestHandler):
                     [pattern, pattern, max_results],
                 ).fetchall()
 
-            results = [{"title": title or path, "id": path, "summary": summary or ""} for path, title, summary in rows]
+            results = [
+                {"title": title or path, "id": path, "summary": summary or ""}
+                for path, title, summary in rows
+            ]
 
             yaml_lines = ["results:"]
             for r in results:
@@ -285,7 +289,10 @@ class LSHandler(tornado.web.RequestHandler):
                     [prefix + "%"],
                 ).fetchall()
 
-            results = [{"title": title or path, "id": path, "summary": summary or ""} for path, title, summary in rows]
+            results = [
+                {"title": title or path, "id": path, "summary": summary or ""}
+                for path, title, summary in rows
+            ]
 
             yaml_lines = ["files:"]
             for r in results:
@@ -402,6 +409,7 @@ class AIHandler(tornado.web.RequestHandler):
                 "text": llm_response.get("text", ""),
                 "model": llm_response.get("model", "unknown"),
                 "function_call": llm_response.get("function_call"),
+                "extra_data": llm_response.get("extra_data"),
             }
 
             logger.info(f"Chat completion response: {response_data}")
