@@ -39,6 +39,12 @@
     // required patch in wvlet package to resolve package.json issue
     import { WvletCompiler } from "@wvlet/wvlet";
 
+    import * as saneql from "saneql/saneql";
+    import SANEQL_WASM from "saneql/saneql_bg.wasm?url";
+
+    console.log("Initializing SaneQL");
+    saneql.default(SANEQL_WASM);
+
     const VERSION = "0.0.22";
 
     let backendUrl = window.location.origin;
@@ -335,6 +341,36 @@
         }
     }
 
+    const describeCache = new Map();
+
+    async function getSchema(
+        table,
+        username,
+        password,
+        environment,
+        extraCredentials,
+    ) {
+        console.log("Getting columns for", table);
+        const key = `${environment}:${table}`;
+        if (describeCache.has(key)) {
+            return describeCache.get(key);
+        }
+
+        let result = await queryService.executeQuery(
+            "DESCRIBE " + table,
+            100,
+            username,
+            password,
+            environment,
+            "json",
+            extraCredentials,
+        );
+
+        describeCache.set(key, result);
+
+        return result;
+    }
+
     async function execute() {
         const activeTab = getActiveTab();
         if (!activeTab) {
@@ -421,6 +457,66 @@
                 console.error(e);
                 error = String(e);
             }
+
+            activeTab.executing = false;
+            clearInterval(refreshTimer);
+            activeTab.lastQueryTime = performance.now() - start;
+
+            if (
+                error === null &&
+                result.success &&
+                activeTab.resultViewerComponent
+            ) {
+                // Save current config if keepView is enabled
+                if (activeTab.keepView && activeTab.display === "perspective") {
+                    const currentConfig =
+                        await activeTab.resultViewerComponent.saveViewerConfig();
+                    activeTab.perspectiveConfig = currentConfig;
+                }
+                await activeTab.resultViewerComponent.loadData(result.data);
+            } else {
+                console.log("Error", result, activeTab.resultViewerComponent);
+                activeTab.error = error || result.error;
+            }
+        } else if (activeTab.language === "saneql") {
+            let error = null;
+
+            console.log("Execute saneql", queryToExecute);
+            let compiledSQL = await saneql.compile(
+                queryToExecute,
+                async function (table) {
+                    console.log("Getting schema", table);
+                    let schema = null;
+                    try {
+                        schema = await getSchema(
+                            table,
+                            username,
+                            password,
+                            selectedEnvironment,
+                            extraCredentials,
+                        );
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    console.log("Schema", schema);
+                    let schemaFinal = schema.rows.map(function (x) {
+                        return { name: x["Column"], type: x["Type"] };
+                    });
+                    console.log("Schema final", schemaFinal);
+                    return schemaFinal;
+                },
+            );
+            console.log("Compiled query:", compiledSQL);
+
+            result = await queryService.executeQuery(
+                compiledSQL,
+                activeTab.limit,
+                username,
+                password,
+                selectedEnvironment,
+                "arrow",
+                extraCredentials,
+            );
 
             activeTab.executing = false;
             clearInterval(refreshTimer);

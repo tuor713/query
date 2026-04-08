@@ -28,8 +28,6 @@
             showCopySuccess = false;
         }, 2000);
     }
-
-
 </script>
 
 <div class="controls-container">
@@ -44,7 +42,9 @@
             <button onclick={onSave}
                 ><Save size="1em" style="vertical-align: middle;" /></button
             >
-            <button onclick={onReset} title="Reset"><Eraser size="1em" style="vertical-align: middle;" /></button>
+            <button onclick={onReset} title="Reset"
+                ><Eraser size="1em" style="vertical-align: middle;" /></button
+            >
             <div class="copy-url-container">
                 <button
                     onclick={handleCopyURL}
@@ -78,6 +78,7 @@
             <option value="sql" selected>sql</option>
             <option value="wvlet">wvlet</option>
             <option value="malloy">malloy</option>
+            <option value="saneql">saneql</option>
         </select>
     </div>
 
@@ -106,7 +107,12 @@
         {#if lastQueryTime > 0}
             <span class="query-time">{formatQueryTime(lastQueryTime)}</span>
         {/if}
-        <button id="run" onclick={onExecute} disabled={executing} title="Run query">
+        <button
+            id="run"
+            onclick={onExecute}
+            disabled={executing}
+            title="Run query"
+        >
             <CirclePlay size="1.2em" />
         </button>
     </div>
