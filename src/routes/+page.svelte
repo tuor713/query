@@ -172,10 +172,16 @@
         }
     }
 
-    // Persist workspace whenever tabs or activeTabId change
+    // Persist workspace debounced — at most once per 10s
+    let persistTimer;
     $effect(() => {
-        console.log("Persisting workspace");
-        storageService.saveWorkspace(tabs, activeTabId);
+        const t = tabs;
+        const id = activeTabId;
+        clearTimeout(persistTimer);
+        persistTimer = setTimeout(() => {
+            console.log("Persisting workspace");
+            storageService.saveWorkspace(t, id);
+        }, 10000);
     });
 
     let configLoaded = $state(false);
@@ -184,6 +190,10 @@
         await loadConfig(backendUrl);
         configLoaded = true;
         await initializePerspective();
+        window.addEventListener("beforeunload", () => {
+            console.log("Persisting workspace before save");
+            storageService.saveWorkspace(tabs, activeTabId);
+        });
     });
 
     function handleKeyDown(e) {
