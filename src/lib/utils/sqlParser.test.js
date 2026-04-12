@@ -37,35 +37,34 @@ describe("SQL Parser", () => {
   describe("rewriteQueryWithLimit", () => {
     it("should wrap simple SELECT without ORDER BY", () => {
       const result = rewriteQueryWithLimit("SELECT id, name FROM users", 100);
-      expect(result).toContain("SELECT * FROM (");
-      expect(result).toContain("SELECT id, name FROM users");
-      expect(result).toContain(") LIMIT 100");
+      expect(result).toBe("SELECT * FROM (\nSELECT id, name FROM users\n) LIMIT 100");
     });
 
-    it("should preserve ORDER BY in outer query", () => {
+    it("should append LIMIT directly when ORDER BY is present", () => {
       const result = rewriteQueryWithLimit(
         "SELECT id, name FROM users ORDER BY created_at DESC",
         50,
       );
-      expect(result).toContain("SELECT * FROM (");
-      expect(result).toContain(
-        "SELECT id, name FROM users ORDER BY created_at DESC",
+      expect(result).toBe(
+        "SELECT id, name FROM users ORDER BY created_at DESC\nLIMIT 50",
       );
-      expect(result).toContain(") ORDER BY created_at DESC LIMIT 50");
     });
 
-    it("should preserve complex ORDER BY with multiple columns", () => {
+    it("should append LIMIT directly for complex ORDER BY with multiple columns", () => {
       const result = rewriteQueryWithLimit(
         "SELECT id, name, email FROM users ORDER BY name ASC, created_at DESC",
         200,
       );
-      expect(result).toContain("SELECT * FROM (");
-      expect(result).toContain(
-        "SELECT id, name, email FROM users ORDER BY name ASC, created_at DESC",
+      expect(result).toBe(
+        "SELECT id, name, email FROM users ORDER BY name ASC, created_at DESC\nLIMIT 200",
       );
-      expect(result).toContain(
-        ") ORDER BY name ASC, created_at DESC LIMIT 200",
-      );
+    });
+
+    it("should append LIMIT directly for nested subquery with ORDER BY (regression)", () => {
+      const query =
+        'select v_1 as "businessdate", v_2 as "c" from (select v_3 as v_1, count(*) as v_2 from (select "businessdate" as v_3 from "memory"."default"."risk") s group by 1) s order by v_2';
+      const result = rewriteQueryWithLimit(query, 100000);
+      expect(result).toBe(`${query}\nLIMIT 100000`);
     });
 
     it("should preserve existing LIMIT when it is smaller than or equal to passed limit", () => {
@@ -81,28 +80,18 @@ describe("SQL Parser", () => {
     });
 
     it("should override existing LIMIT when it is larger than passed limit", () => {
-      const query = "SELECT id FROM users LIMIT 200";
-      const result = rewriteQueryWithLimit(query, 100);
-      expect(result).toContain("SELECT * FROM (");
-      expect(result).toContain("SELECT id FROM users LIMIT 200");
-      expect(result).toContain(") LIMIT 100");
+      const result = rewriteQueryWithLimit("SELECT id FROM users LIMIT 200", 100);
+      expect(result).toBe("SELECT * FROM (\nSELECT id FROM users LIMIT 200\n) LIMIT 100");
     });
 
-    it("should override existing LIMIT with ORDER BY when limit is larger", () => {
-      const query = "SELECT id, name FROM users ORDER BY name LIMIT 500";
-      const result = rewriteQueryWithLimit(query, 100);
-      expect(result).toContain("SELECT * FROM (");
-      expect(result).toContain(
-        "SELECT id, name FROM users ORDER BY name LIMIT 500",
-      );
-      expect(result).toContain(") ORDER BY name ASC LIMIT 100");
+    it("should wrap to override existing LIMIT that is too large (even with ORDER BY)", () => {
+      const result = rewriteQueryWithLimit("SELECT id, name FROM users ORDER BY name LIMIT 500", 100);
+      expect(result).toBe("SELECT * FROM (\nSELECT id, name FROM users ORDER BY name LIMIT 500\n) ORDER BY name ASC LIMIT 100");
     });
 
     it("should handle queries without FROM clause", () => {
       const result = rewriteQueryWithLimit("SELECT 1 as test", 10);
-      expect(result).toContain("SELECT * FROM (");
-      expect(result).toContain("SELECT 1 as test");
-      expect(result).toContain(") LIMIT 10");
+      expect(result).toBe("SELECT * FROM (\nSELECT 1 as test\n) LIMIT 10");
     });
 
     it("should fallback to simple wrapping for unparseable queries", () => {

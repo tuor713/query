@@ -40,6 +40,27 @@ export function rewriteQueryWithLimit(query, limit) {
 }
 
 /**
+ * Extract the ORDER BY clause string from a parsed orderby AST node
+ */
+function extractOrderByClause(orderby) {
+  try {
+    const dummyQuery = parser.sqlify(
+      {
+        type: "select",
+        columns: [{ expr: { type: "column_ref", table: null, column: { expr: { type: "default", value: "1" } } }, as: null }],
+        from: [{ table: "dual", as: null }],
+        orderby,
+      },
+      { database: "trino" },
+    );
+    const match = dummyQuery.match(/ORDER BY (.+)$/i);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Rewrite a single parsed SQL statement
  * @param {Object} ast - Parsed AST
  * @param {string} originalQuery - Original query string
@@ -59,47 +80,23 @@ function rewriteSingleQuery(ast, originalQuery, limit) {
     if (existingLimit <= limit) {
       return originalQuery;
     }
-    // Existing limit is larger, so we need to override it with outer limit
-  }
-
-  // Extract ORDER BY if present
-  if (ast.orderby && ast.orderby.length > 0) {
-    try {
-      // Generate the ORDER BY clause by creating a dummy query and extracting it
-      const dummyQuery = parser.sqlify(
-        {
-          type: "select",
-          columns: [
-            {
-              expr: {
-                type: "column_ref",
-                table: null,
-                column: { expr: { type: "default", value: "1" } },
-              },
-              as: null,
-            },
-          ],
-          from: [{ table: "dual", as: null }],
-          orderby: ast.orderby,
-        },
-        { database: "trino" },
-      );
-
-      const orderByMatch = dummyQuery.match(/ORDER BY (.+)$/i);
-      const orderByClause = orderByMatch ? orderByMatch[1] : null;
-
+    // Existing limit is larger - override via wrapping (can't append a second LIMIT).
+    // Preserve ORDER BY in the outer query if present.
+    if (ast.orderby && ast.orderby.length > 0) {
+      const orderByClause = extractOrderByClause(ast.orderby);
       if (orderByClause) {
         return `SELECT * FROM (\n${originalQuery}\n) ORDER BY ${orderByClause} LIMIT ${limit}`;
       }
-    } catch (sqlifyError) {
-      console.warn(
-        "Failed to extract ORDER BY clause, using fallback:",
-        sqlifyError.message,
-      );
     }
+    return `SELECT * FROM (\n${originalQuery}\n) LIMIT ${limit}`;
   }
 
-  // No ORDER BY or extraction failed - use simple wrapping
+  // No existing LIMIT: if there's an ORDER BY, append LIMIT directly
+  if (ast.orderby && ast.orderby.length > 0) {
+    return `${originalQuery}\nLIMIT ${limit}`;
+  }
+
+  // No ORDER BY, no LIMIT - wrap
   return `SELECT * FROM (\n${originalQuery}\n) LIMIT ${limit}`;
 }
 
