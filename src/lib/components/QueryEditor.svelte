@@ -38,7 +38,6 @@
             );
 
             editor.onDidChangeCursorSelection((e) => {
-                console.log(e);
                 if (
                     e.selection.startLineNumber !== e.selection.endLineNumber ||
                     e.selection.startColumn !== e.selection.endColumn

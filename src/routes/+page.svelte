@@ -350,7 +350,6 @@
         environment,
         extraCredentials,
     ) {
-        console.log("Getting columns for", table);
         const key = `${environment}:${table}`;
         if (describeCache.has(key)) {
             return describeCache.get(key);
@@ -482,41 +481,44 @@
             let error = null;
 
             console.log("Execute saneql", queryToExecute);
-            let compiledSQL = await saneql.compile(
-                queryToExecute,
-                async function (table) {
-                    console.log("Getting schema", table);
-                    let schema = null;
-                    try {
-                        schema = await getSchema(
-                            table,
-                            username,
-                            password,
-                            selectedEnvironment,
-                            extraCredentials,
-                        );
-                    } catch (e) {
-                        console.error(e);
-                    }
-                    console.log("Schema", schema);
-                    let schemaFinal = schema.rows.map(function (x) {
-                        return { name: x["Column"], type: x["Type"] };
-                    });
-                    console.log("Schema final", schemaFinal);
-                    return schemaFinal;
-                },
-            );
-            console.log("Compiled query:", compiledSQL);
+            try {
+                let compiledSQL = await saneql.compile(
+                    queryToExecute,
+                    async function (table) {
+                        console.log("Getting schema", table);
+                        let schema = null;
+                        try {
+                            schema = await getSchema(
+                                table,
+                                username,
+                                password,
+                                selectedEnvironment,
+                                extraCredentials,
+                            );
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        let schemaFinal = schema.rows.map(function (x) {
+                            return { name: x["Column"], type: x["Type"] };
+                        });
+                        console.log("Schema final", schemaFinal);
+                        return schemaFinal;
+                    },
+                );
+                console.log("Compiled query:", compiledSQL);
 
-            result = await queryService.executeQuery(
-                compiledSQL,
-                activeTab.limit,
-                username,
-                password,
-                selectedEnvironment,
-                "arrow",
-                extraCredentials,
-            );
+                result = await queryService.executeQuery(
+                    compiledSQL,
+                    activeTab.limit,
+                    username,
+                    password,
+                    selectedEnvironment,
+                    "arrow",
+                    extraCredentials,
+                );
+            } catch (e) {
+                error = e;
+            }
 
             activeTab.executing = false;
             clearInterval(refreshTimer);
