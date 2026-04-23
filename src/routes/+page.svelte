@@ -508,6 +508,12 @@
                         } catch (e) {
                             console.error(e);
                         }
+                        if (!schema.rows) {
+                            throw new Error(
+                                `Error retrieving schema for ${table}: ${schema.error}`,
+                            );
+                        }
+
                         let schemaFinal = schema.rows.map(function (x) {
                             return { name: x["Column"], type: x["Type"] };
                         });
