@@ -1,18 +1,29 @@
 <script>
     import { marked } from "marked";
     import VegaLiteChart from "./VegaLiteChart.svelte";
+    import DashboardBlock from "./DashboardBlock.svelte";
     import { tableFromIPC, DataType } from "apache-arrow";
 
-    let { content = "", datasetRegistry = {} } = $props();
+    let {
+        content = "",
+        datasetRegistry = {},
+        queryService = null,
+        username = "",
+        password = "",
+        selectedEnvironment = null,
+        extraCredentials = [],
+    } = $props();
+
     let vegaLiteBlocks = $state([]);
+    let dashboardBlocks = $state([]);
     let htmlContent = $state("");
 
-    // Custom marked renderer for vega-lite code blocks
-    function renderMarkdownWithVega(markdown) {
-        const blocks = [];
+    // Custom marked renderer for vega-lite and dashboard code blocks
+    function renderMarkdown(markdown) {
+        const vegaBlocks = [];
+        const dashBlocks = [];
         let blockId = 0;
 
-        // Custom renderer
         const renderer = new marked.Renderer();
         const originalCode = renderer.code.bind(renderer);
 
@@ -20,14 +31,19 @@
             if (code.lang === "vega-lite") {
                 console.log("handling vega lite code", code);
                 const id = `vega-chart-${Date.now()}-${blockId++}`;
-                blocks.push({ id, spec: code.text });
+                vegaBlocks.push({ id, spec: code.text });
                 return `<div class="vega-lite-placeholder" data-chart-id="${id}"></div>`;
+            }
+            if (code.lang === "dashboard") {
+                const id = `dashboard-block-${Date.now()}-${blockId++}`;
+                dashBlocks.push({ id, code: code.text });
+                return `<div class="dashboard-placeholder" data-dashboard-id="${id}"></div>`;
             }
             return originalCode(code);
         };
 
         const html = marked(markdown, { renderer });
-        return { html, vegaLiteBlocks: blocks };
+        return { html, vegaLiteBlocks: vegaBlocks, dashboardBlocks: dashBlocks };
     }
 
     function convertArrowType(val, type) {
@@ -83,9 +99,10 @@
     }
 
     $effect(() => {
-        const result = renderMarkdownWithVega(content);
+        const result = renderMarkdown(content);
         htmlContent = result.html;
         vegaLiteBlocks = prepareVegaSpecs(result.vegaLiteBlocks);
+        dashboardBlocks = result.dashboardBlocks;
     });
 </script>
 
@@ -106,6 +123,17 @@
             {block.error}
         </div>
     {/if}
+{/each}
+
+{#each dashboardBlocks as block (block.id)}
+    <DashboardBlock
+        code={block.code}
+        {queryService}
+        {username}
+        {password}
+        {selectedEnvironment}
+        {extraCredentials}
+    />
 {/each}
 
 <style>

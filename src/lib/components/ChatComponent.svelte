@@ -158,7 +158,7 @@
     }
 
     async function processAIConversation(conversationMessages, turnCount = 0) {
-        const maxTurns = 6;
+        const maxTurns = 10;
 
         if (turnCount >= maxTurns) {
             console.log("Max AI turns reached");
@@ -889,6 +889,11 @@
                         <MarkdownWithCharts
                             content={message.content || ""}
                             {datasetRegistry}
+                            {queryService}
+                            {username}
+                            {password}
+                            {selectedEnvironment}
+                            {extraCredentials}
                         />
                     {:else if message.type === "user"}
                         <span
@@ -899,6 +904,11 @@
                         <MarkdownWithCharts
                             content={message.aiContent || ""}
                             {datasetRegistry}
+                            {queryService}
+                            {username}
+                            {password}
+                            {selectedEnvironment}
+                            {extraCredentials}
                         />
                     {/if}
 
