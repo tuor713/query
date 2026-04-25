@@ -155,3 +155,4 @@ This project is a Trino Data Explorer - a single page web application that allow
 - No need to run `npm run dev` to check the frontend. You can run `npm run build` to check for errors in the frontend.
 - `npm run build` needs to be run with extended memory, e.g. `export NODE_OPTIONS="--max-old-space-size=8192"`
 - Use file:line_number references (e.g., `QueryEditor.svelte:28`) when discussing specific code locations
+- When adding, removing, or significantly changing features, update the release notes in `src/lib/components/ReleaseNotesDialog.svelte` under the current version key

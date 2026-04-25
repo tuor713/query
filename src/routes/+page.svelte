@@ -37,8 +37,6 @@
         LogOut,
         LayoutDashboard,
     } from "@lucide/svelte";
-    // required patch in wvlet package to resolve package.json issue
-    import { WvletCompiler } from "@wvlet/wvlet";
 
     import * as saneql from "saneql/saneql";
     import SANEQL_WASM from "saneql/saneql_bg.wasm?url";
@@ -420,50 +418,6 @@
             try {
                 result = await queryService.executeQuery(
                     queryToExecute,
-                    activeTab.limit,
-                    username,
-                    password,
-                    selectedEnvironment,
-                    "arrow",
-                    extraCredentials,
-                );
-            } catch (e) {
-                console.error(e);
-                error = String(e);
-            }
-
-            activeTab.executing = false;
-            clearInterval(refreshTimer);
-            activeTab.lastQueryTime = performance.now() - start;
-
-            if (
-                error === null &&
-                result.success &&
-                activeTab.resultViewerComponent
-            ) {
-                // Save current config if keepView is enabled
-                if (activeTab.keepView && activeTab.display === "perspective") {
-                    const currentConfig =
-                        await activeTab.resultViewerComponent.saveViewerConfig();
-                    activeTab.perspectiveConfig = currentConfig;
-                }
-                await activeTab.resultViewerComponent.loadData(result.data);
-            } else {
-                console.log("Error", result, activeTab.resultViewerComponent);
-                activeTab.error = error || result.error;
-            }
-        } else if (activeTab.language === "wvlet") {
-            var result = null;
-            var error = null;
-            try {
-                const compiler = new WvletCompiler({ target: "trino" });
-                const compiledSQL = compiler.compile(queryToExecute, {
-                    target: "trino",
-                });
-                console.log("Compiled Wvlet to SQL:", compiledSQL);
-
-                result = await queryService.executeQuery(
-                    compiledSQL,
                     activeTab.limit,
                     username,
                     password,

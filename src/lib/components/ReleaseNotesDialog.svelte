@@ -19,6 +19,9 @@
 
 ### No longer broken
 - [SaneQL] Support \`bigint\` datatype
+
+### Removed
+- [Wvlet] Wvlet language support removed in favor of SaneQL
 `,
     };
 
