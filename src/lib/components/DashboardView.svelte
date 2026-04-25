@@ -1,10 +1,5 @@
 <script>
     import { onDestroy } from "svelte";
-    import * as vg from "@uwdata/vgplot";
-    import { Coordinator, wasmConnector } from "@uwdata/vgplot";
-    import { GoldenLayout } from "golden-layout";
-    import "golden-layout/dist/css/goldenlayout-base.css";
-    import "golden-layout/dist/css/themes/goldenlayout-light-theme.css";
     import Monaco from "svelte-monaco";
     import {
         Play,
@@ -18,12 +13,7 @@
     import { DashboardStorageService } from "../services/DashboardStorageService.js";
     import SavedItemsSidebar from "./SavedItemsSidebar.svelte";
     import { formatQueryTime } from "../utils/formatTime.js";
-    import {
-        createFetchFromTrino,
-        createLoadTrino,
-        createPerspectivePanel,
-    } from "../utils/dashboardRuntime.js";
-    import { createGoldenBuilder } from "../utils/goldenBuilder.js";
+    import { Dashboard } from "../utils/Dashboard.js";
     import QueryLogPanel from "./QueryLogPanel.svelte";
 
     let {
@@ -59,22 +49,17 @@
     }
 
     function clearDisplay() {
-        if (glInstance) {
-            try { glInstance.destroy(); } catch (_) {}
-            glInstance = null;
-        }
-        if (coordinatorInstance) {
-            try { coordinatorInstance.clear(); } catch (_) {}
-        }
+        dashboard?.destroy();
+        dashboard = null;
         if (containerEl) containerEl.innerHTML = "";
         error = null;
         queryLog = [];
     }
 
-    function loadDashboard(dashboard) {
+    function loadDashboard(savedDashboard) {
         clearDisplay();
-        currentDashboardName = dashboard.name;
-        snippetCode = dashboard.snippet;
+        currentDashboardName = savedDashboard.name;
+        snippetCode = savedDashboard.snippet;
     }
 
     function deleteDashboard(name) {
@@ -134,9 +119,7 @@ return golden.layout(container,
     let error = $state(null);
 
     let containerEl = $state(null);
-    let glInstance = null;
-    let coordinatorInstance = null;
-    let dbConnector = null;
+    let dashboard = null;
 
     /** @type {{ sql: string, status: 'running'|'done'|'error', elapsed: number }[]} */
     let queryLog = $state([]);
@@ -153,7 +136,7 @@ return golden.layout(container,
 
     $effect(() => {
         editorCollapsed;
-        requestAnimationFrame(() => glInstance?.updateRootSize());
+        requestAnimationFrame(() => dashboard?.updateRootSize());
     });
 
     function onSplitterMousedown(e) {
@@ -170,7 +153,7 @@ return golden.layout(container,
             150,
             Math.min(e.clientX - rect.left, rect.width - 200),
         );
-        glInstance?.updateRootSize();
+        dashboard?.updateRootSize();
     }
 
     function onMouseup() {
@@ -178,7 +161,7 @@ return golden.layout(container,
         localStorage.setItem(EDITOR_WIDTH_KEY, String(editorWidth));
         document.removeEventListener("mousemove", onMousemove);
         document.removeEventListener("mouseup", onMouseup);
-        glInstance?.updateRootSize();
+        dashboard?.updateRootSize();
     }
 
     const editorOptions = {
@@ -199,85 +182,17 @@ return golden.layout(container,
         queryLog = [];
         showQueryLog = false;
 
-        if (glInstance) {
-            try {
-                glInstance.destroy();
-            } catch (_) {}
-            glInstance = null;
-        }
-        containerEl.innerHTML = "";
-
-        if (coordinatorInstance) {
-            try {
-                coordinatorInstance.clear();
-            } catch (_) {}
-        }
-
-        coordinatorInstance = new Coordinator();
-        dbConnector = wasmConnector();
-        coordinatorInstance.databaseConnector(dbConnector);
-        vg.coordinator(coordinatorInstance);
-
         storage.saveSnippet(snippetCode);
 
-        const fetchFromTrino = createFetchFromTrino({
-            queryService,
-            username,
-            password,
-            selectedEnvironment,
-            extraCredentials,
-            logQueryStatus: (entry) => {
-                if (entry.status === "running") {
-                    queryLog = [...queryLog, entry];
-                } else {
-                    // Replace the matching running entry with the completed one
-                    queryLog = queryLog.map((q) =>
-                        q.sql === entry.sql && q.status === "running"
-                            ? entry
-                            : q,
-                    );
-                }
-            },
-        });
-        const loadTrino = createLoadTrino(fetchFromTrino, dbConnector);
-        const perspective = createPerspectivePanel(
-            dbConnector,
-            coordinatorInstance,
-        );
-        const golden = createGoldenBuilder(GoldenLayout);
+        dashboard?.destroy();
+        dashboard = new Dashboard({ queryService, username, password, selectedEnvironment, extraCredentials });
 
         try {
-            // eslint-disable-next-line no-new-func
-            const fn = new Function(
-                "vg",
-                "container",
-                "loadTrino",
-                "perspective",
-                "golden",
-                `"use strict"; return (async () => { ${snippetCode} })();`,
-            );
-            const result = await fn(
-                vg,
-                containerEl,
-                loadTrino,
-                perspective,
-                golden,
-            );
-
-            if (result && typeof result.saveLayout === "function") {
-                glInstance = result;
-                glInstance.on("stateChanged", () => {
-                    try {
-                        storage.saveLayoutState(glInstance.saveLayout());
-                    } catch (_) {}
-                });
-                const savedLayout = storage.getLayoutState();
-                if (savedLayout) {
-                    try {
-                        glInstance.loadLayout(savedLayout);
-                    } catch (_) {}
-                }
-            }
+            await dashboard.mount(containerEl, snippetCode, {
+                onQueryLog: (log) => { queryLog = log; },
+                layoutState: storage.getLayoutState(),
+                onLayoutStateChange: (state) => storage.saveLayoutState(state),
+            });
         } catch (err) {
             console.error("Dashboard snippet error:", err);
             error = err?.message ?? String(err);
@@ -287,18 +202,7 @@ return golden.layout(container,
         }
     }
 
-    onDestroy(() => {
-        if (glInstance) {
-            try {
-                glInstance.destroy();
-            } catch (_) {}
-        }
-        if (coordinatorInstance) {
-            try {
-                coordinatorInstance.clear();
-            } catch (_) {}
-        }
-    });
+    onDestroy(() => dashboard?.destroy());
 </script>
 
 <div class="dashboard-root">

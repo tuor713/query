@@ -1,17 +1,7 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-    import * as vg from "@uwdata/vgplot";
-    import { Coordinator, wasmConnector } from "@uwdata/vgplot";
-    import { GoldenLayout } from "golden-layout";
-    import "golden-layout/dist/css/goldenlayout-base.css";
-    import "golden-layout/dist/css/themes/goldenlayout-light-theme.css";
     import { AlertCircle, Loader } from "@lucide/svelte";
-    import {
-        createFetchFromTrino,
-        createLoadTrino,
-        createPerspectivePanel,
-    } from "../utils/dashboardRuntime.js";
-    import { createGoldenBuilder } from "../utils/goldenBuilder.js";
+    import { Dashboard } from "../utils/Dashboard.js";
 
     let { code, queryService, username, password, selectedEnvironment, extraCredentials } = $props();
 
@@ -20,9 +10,7 @@
     let error = $state(null);
     let queryLog = $state([]);
 
-    let glInstance = null;
-    let coordinatorInstance = null;
-    let dbConnector = null;
+    let dashboard = null;
 
     async function run() {
         if (!containerEl) return;
@@ -30,56 +18,13 @@
         error = null;
         queryLog = [];
 
-        if (glInstance) {
-            try { glInstance.destroy(); } catch (_) {}
-            glInstance = null;
-        }
-        containerEl.innerHTML = "";
-
-        if (coordinatorInstance) {
-            try { coordinatorInstance.clear(); } catch (_) {}
-        }
-
-        coordinatorInstance = new Coordinator();
-        dbConnector = wasmConnector();
-        coordinatorInstance.databaseConnector(dbConnector);
-        vg.coordinator(coordinatorInstance);
-
-        const fetchFromTrino = createFetchFromTrino({
-            queryService,
-            username,
-            password,
-            selectedEnvironment,
-            extraCredentials,
-            logQueryStatus: (entry) => {
-                if (entry.status === "running") {
-                    queryLog = [...queryLog, entry];
-                } else {
-                    queryLog = queryLog.map((q) =>
-                        q.sql === entry.sql && q.status === "running" ? entry : q,
-                    );
-                }
-            },
-        });
-        const loadTrino = createLoadTrino(fetchFromTrino, dbConnector);
-        const perspective = createPerspectivePanel(dbConnector, coordinatorInstance);
-        const golden = createGoldenBuilder(GoldenLayout);
+        dashboard?.destroy();
+        dashboard = new Dashboard({ queryService, username, password, selectedEnvironment, extraCredentials });
 
         try {
-            // eslint-disable-next-line no-new-func
-            const fn = new Function(
-                "vg",
-                "container",
-                "loadTrino",
-                "perspective",
-                "golden",
-                `"use strict"; return (async () => { ${code} })();`,
-            );
-            const result = await fn(vg, containerEl, loadTrino, perspective, golden);
-
-            if (result && typeof result.saveLayout === "function") {
-                glInstance = result;
-            }
+            await dashboard.mount(containerEl, code, {
+                onQueryLog: (log) => { queryLog = log; },
+            });
         } catch (err) {
             console.error("Dashboard block error:", err);
             error = err?.message ?? String(err);
@@ -88,18 +33,8 @@
         }
     }
 
-    onMount(() => {
-        run();
-    });
-
-    onDestroy(() => {
-        if (glInstance) {
-            try { glInstance.destroy(); } catch (_) {}
-        }
-        if (coordinatorInstance) {
-            try { coordinatorInstance.clear(); } catch (_) {}
-        }
-    });
+    onMount(() => run());
+    onDestroy(() => dashboard?.destroy());
 </script>
 
 <div class="dashboard-block">
