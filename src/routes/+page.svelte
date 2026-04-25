@@ -24,6 +24,7 @@
         TabContainer,
         ChatComponent,
         DashboardView,
+        ReleaseNotesDialog,
     } from "$lib";
 
     import { MalloyRenderer } from "@malloydata/render";
@@ -68,6 +69,7 @@
         storageService.getEnvironment() || getDefaultEnvironment(),
     );
     let sidebarCollapsed = $state(false);
+    let showReleaseNotes = $state(false);
     let folders = $state(storageService.getFolders());
 
     // Initialize query from URL or local storage
@@ -209,6 +211,13 @@
         extraCredentials = extraCredentialsInput;
         loggedIn = true;
         storageService.saveUsername(username);
+        if (storageService.getLastSeenVersion() !== VERSION) {
+            showReleaseNotes = true;
+        }
+    }
+
+    function dismissReleaseNotes() {
+        storageService.saveLastSeenVersion(VERSION);
     }
 
     function loadSavedQuery(toLoad) {
@@ -780,6 +789,11 @@
             {/if}
         </div>
     </div>
+    <ReleaseNotesDialog
+        bind:isOpen={showReleaseNotes}
+        version={VERSION}
+        onDismiss={dismissReleaseNotes}
+    />
 {:else}
     <LoginComponent bind:username bind:password onLogin={doLogin} />
 {/if}

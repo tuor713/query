@@ -10,6 +10,7 @@ export { default as MosaicViewer } from "./components/MosaicViewer.svelte";
 export { default as TabContainer } from "./components/TabContainer.svelte";
 export { default as ChatComponent } from "./components/ChatComponent.svelte";
 export { default as DashboardView } from "./components/DashboardView.svelte";
+export { default as ReleaseNotesDialog } from "./components/ReleaseNotesDialog.svelte";
 
 // Services
 export { initializePerspective } from "./services/PerspectiveInitializer.js";

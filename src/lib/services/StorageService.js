@@ -88,4 +88,12 @@ export class StorageService {
     const raw = localStorage.getItem("workspace");
     return raw ? JSON.parse(raw) : null;
   }
+
+  saveLastSeenVersion(version) {
+    localStorage.setItem("lastSeenVersion", version);
+  }
+
+  getLastSeenVersion() {
+    return localStorage.getItem("lastSeenVersion") || null;
+  }
 }
