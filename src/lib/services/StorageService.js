@@ -89,6 +89,23 @@ export class StorageService {
     return raw ? JSON.parse(raw) : null;
   }
 
+  saveMaxTurns(n) {
+    localStorage.setItem("maxTurns", String(n));
+  }
+
+  getMaxTurns() {
+    const v = localStorage.getItem("maxTurns");
+    return v ? parseInt(v, 10) : 10;
+  }
+
+  saveDefaultLanguage(language) {
+    localStorage.setItem("defaultLanguage", language);
+  }
+
+  getDefaultLanguage() {
+    return localStorage.getItem("defaultLanguage") || "sql";
+  }
+
   saveLastSeenVersion(version) {
     localStorage.setItem("lastSeenVersion", version);
   }

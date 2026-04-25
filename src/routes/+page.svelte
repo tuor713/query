@@ -36,7 +36,9 @@
         ChevronRight,
         LogOut,
         LayoutDashboard,
+        Settings,
     } from "@lucide/svelte";
+    import SettingsPage from "$lib/components/SettingsPage.svelte";
 
     import * as saneql from "saneql/saneql";
     import SANEQL_WASM from "saneql/saneql_bg.wasm?url";
@@ -68,6 +70,10 @@
     );
     let sidebarCollapsed = $state(false);
     let showReleaseNotes = $state(false);
+    let previousView = $state("query");
+    let appMaxTurns = $state(storageService.getMaxTurns());
+    let appDefaultLanguage = $state(storageService.getDefaultLanguage());
+    let appSystemPrompt = $state(storageService.getSystemPrompt());
     let folders = $state(storageService.getFolders());
 
     // Initialize query from URL or local storage
@@ -679,6 +685,16 @@
                         <LayoutDashboard size="1em" /> Dashboard <i>(alpha)</i>
                     </button>
                     <button
+                        class="nav-tab settings-btn {activeView === 'settings' ? 'active' : ''}"
+                        onclick={() => {
+                            if (activeView !== "settings") previousView = activeView;
+                            activeView = "settings";
+                        }}
+                        title="Settings"
+                    >
+                        <Settings size="1em" />
+                    </button>
+                    <button
                         class="nav-tab logout-btn"
                         onclick={() => {
                             loggedIn = false;
@@ -713,6 +729,7 @@
                         editorCollapsed={getActiveTab()?.editorCollapsed ??
                             false}
                         {collapseButton}
+                        defaultLanguage={appDefaultLanguage}
                     >
                         {#each tabs as tab (tab.id)}
                             {@render children(tab, tab.id === activeTabId)}
@@ -727,6 +744,7 @@
                         {extraCredentials}
                         {queryService}
                         {aiService}
+                        maxTurns={appMaxTurns}
                         bind:showDisclaimer
                     />
                 </div>
@@ -738,6 +756,25 @@
                         {extraCredentials}
                         {selectedEnvironment}
                         {queryService}
+                    />
+                </div>
+            {:else if activeView === "settings"}
+                <div id="settings-content">
+                    <SettingsPage
+                        systemPrompt={appSystemPrompt}
+                        maxTurns={appMaxTurns}
+                        defaultLanguage={appDefaultLanguage}
+                        getDefaultPrompt={() => aiService.getDefaultSystemPrompt()}
+                        onSave={(settings) => {
+                            appSystemPrompt = settings.systemPrompt;
+                            appMaxTurns = settings.maxTurns;
+                            appDefaultLanguage = settings.defaultLanguage;
+                            storageService.saveSystemPrompt(settings.systemPrompt);
+                            storageService.saveMaxTurns(settings.maxTurns);
+                            storageService.saveDefaultLanguage(settings.defaultLanguage);
+                            activeView = previousView;
+                        }}
+                        onCancel={() => (activeView = previousView)}
                     />
                 </div>
             {/if}
@@ -891,8 +928,18 @@
         box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
     }
 
-    .nav-tab.logout-btn {
+    .nav-tab.settings-btn {
         margin-left: 0.5rem;
+        color: #888;
+        padding: 0.35rem 0.6rem;
+    }
+
+    .nav-tab.settings-btn:hover {
+        background: #f0f4ff;
+        color: #667eea;
+    }
+
+    .nav-tab.logout-btn {
         color: #888;
     }
 
@@ -909,6 +956,14 @@
     }
 
     #dashboard-content {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        height: calc(100vh - 45px);
+        overflow: hidden;
+    }
+
+    #settings-content {
         display: flex;
         flex-direction: column;
         flex-grow: 1;

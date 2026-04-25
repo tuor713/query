@@ -3,6 +3,7 @@
         tabs = $bindable([]),
         activeTabId = $bindable(0),
         editorCollapsed = false,
+        defaultLanguage = "sql",
         children,
         collapseButton,
     } = $props();
@@ -16,7 +17,7 @@
             queryName: "",
             selection: "",
             limit: 100000,
-            language: "sql",
+            language: defaultLanguage,
             keepView: false,
             editorCollapsed: false,
             display: "perspective",

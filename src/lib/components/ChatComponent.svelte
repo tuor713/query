@@ -4,7 +4,6 @@
         Send,
         Pause,
         MessageSquarePlus,
-        Settings,
         Brain,
         Wrench,
     } from "@lucide/svelte";
@@ -12,7 +11,6 @@
     import ResultViewer from "./ResultViewer.svelte";
     import MarkdownWithCharts from "./MarkdownWithCharts.svelte";
     import EnvironmentSelector from "./EnvironmentSelector.svelte";
-    import SettingsDialog from "./SettingsDialog.svelte";
     import MemoryDialog from "./MemoryDialog.svelte";
     import DisclaimerDialog from "./DisclaimerDialog.svelte";
     import { isSelectOnlyQuery } from "$lib/utils/sqlParser.js";
@@ -25,6 +23,7 @@
         extraCredentials = [],
         queryService,
         aiService,
+        maxTurns = 10,
         showDisclaimer = $bindable(true),
     } = $props();
 
@@ -41,11 +40,7 @@
     let resultViewerInstances = $state({});
     let datasetRegistry = $state({}); // Store query results by dataset ID
     let datasetCounter = $state(0); // Counter for generating dataset IDs
-    let showSettings = $state(false);
     let showMemory = $state(false);
-    let systemPrompt = $state(
-        storageService.getSystemPrompt() || aiService.getDefaultSystemPrompt(),
-    );
     let aiMemory = $state(storageService.getMemory());
 
     // Computed display messages for cleaner UI
@@ -158,8 +153,6 @@
     }
 
     async function processAIConversation(conversationMessages, turnCount = 0) {
-        const maxTurns = 10;
-
         if (turnCount >= maxTurns) {
             console.log("Max AI turns reached");
             isLoading = false;
@@ -767,26 +760,13 @@
         }
     }
 
-    function openSettings() {
-        showSettings = true;
-    }
-
     function openMemory() {
         showMemory = true;
-    }
-
-    function handleSystemPromptSave(newPrompt) {
-        systemPrompt = newPrompt;
-        storageService.saveSystemPrompt(newPrompt);
     }
 
     function handleMemorySave(newMemory) {
         aiMemory = newMemory;
         storageService.saveMemory(newMemory);
-    }
-
-    function getDefaultSystemPrompt() {
-        return aiService.getDefaultSystemPrompt();
     }
 
     function getToolSummary(message) {
@@ -1060,9 +1040,6 @@
                 <button onclick={openMemory} type="button" title="AI Memory">
                     <Brain size={18} />
                 </button>
-                <button onclick={openSettings} type="button" title="Settings">
-                    <Settings size={18} />
-                </button>
             </div>
             <div class="selectors-row">
                 <div class="environment-selector-wrapper">
@@ -1084,13 +1061,6 @@
         </div>
     </div>
 </div>
-
-<SettingsDialog
-    bind:isOpen={showSettings}
-    bind:systemPrompt
-    onSave={handleSystemPromptSave}
-    getDefaultPrompt={getDefaultSystemPrompt}
-/>
 
 <MemoryDialog
     bind:isOpen={showMemory}
