@@ -12,11 +12,12 @@
         "0.0.26": `
 ### New
 - [AI Chat] Assissant can generate dashboards directly in chat
-- [General] Release notes popup
 - [General] Settings page with configurable default query language, AI max turns, and system prompt
+- [General] Release notes popup
 
 ### Improved
 - [SaneQL] Better error messages for incorrect table names
+- [SaneQL] Support for Trino string functions
 
 ### No longer broken
 - [SaneQL] Support \`bigint\` datatype
