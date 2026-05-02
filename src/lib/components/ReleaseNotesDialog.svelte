@@ -9,6 +9,10 @@
     } = $props();
 
     const releaseNotes = {
+        "0.0.27": `
+### No longer broken
+- [AI Chat] Extra data (e.g. thought signatures) from LLM responses is now passed back in subsequent requests
+`,
         "0.0.26": `
 ### New
 - [AI Chat] Assissant can generate dashboards directly in chat

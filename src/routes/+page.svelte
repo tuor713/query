@@ -46,7 +46,7 @@
     console.log("Initializing SaneQL");
     saneql.default(SANEQL_WASM);
 
-    const VERSION = "0.0.26";
+    const VERSION = "0.0.27";
 
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {
@@ -685,9 +685,12 @@
                         <LayoutDashboard size="1em" /> Dashboard <i>(alpha)</i>
                     </button>
                     <button
-                        class="nav-tab settings-btn {activeView === 'settings' ? 'active' : ''}"
+                        class="nav-tab settings-btn {activeView === 'settings'
+                            ? 'active'
+                            : ''}"
                         onclick={() => {
-                            if (activeView !== "settings") previousView = activeView;
+                            if (activeView !== "settings")
+                                previousView = activeView;
                             activeView = "settings";
                         }}
                         title="Settings"
@@ -764,14 +767,19 @@
                         systemPrompt={appSystemPrompt}
                         maxTurns={appMaxTurns}
                         defaultLanguage={appDefaultLanguage}
-                        getDefaultPrompt={() => aiService.getDefaultSystemPrompt()}
+                        getDefaultPrompt={() =>
+                            aiService.getDefaultSystemPrompt()}
                         onSave={(settings) => {
                             appSystemPrompt = settings.systemPrompt;
                             appMaxTurns = settings.maxTurns;
                             appDefaultLanguage = settings.defaultLanguage;
-                            storageService.saveSystemPrompt(settings.systemPrompt);
+                            storageService.saveSystemPrompt(
+                                settings.systemPrompt,
+                            );
                             storageService.saveMaxTurns(settings.maxTurns);
-                            storageService.saveDefaultLanguage(settings.defaultLanguage);
+                            storageService.saveDefaultLanguage(
+                                settings.defaultLanguage,
+                            );
                             activeView = previousView;
                         }}
                         onCancel={() => (activeView = previousView)}

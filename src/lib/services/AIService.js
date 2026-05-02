@@ -285,6 +285,7 @@ Key points:
           role: "assistant",
           content: msg.content,
           function_call: msg.function_call,
+          extra_data: msg.extra_data,
         });
       } else if (msg.type === "tool") {
         let toolContent = msg.content;
