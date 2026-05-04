@@ -83,7 +83,10 @@
     const DEFAULT_SNIPPET = `// Dashboard snippet — available globals:
 // vg                    — vgplot: vg.plot([marks...]), vg.table({from}), vg.barY(), etc.
 // loadTrino(name, sql)  — fetch from Trino and load into an embedded DuckDB table "name"
-// perspective(name)     — Perspective viewer backed by the same DuckDB table (async)
+// perspective(name, config?, opts?) — Perspective viewer backed by the same DuckDB table (async)
+//   opts.filterBy: vg.Selection     — filter viewer rows from a Mosaic selection
+//   opts.selectAs: vg.Selection     — update a Mosaic selection when a row is clicked
+//   opts.selectColumns: string[]    — columns used to build the selectAs predicate
 // golden                — layout builder:
 //   golden.panel(title, element)    — wrap a DOM element as a draggable panel
 //   golden.row(...panels)           — arrange panels horizontally

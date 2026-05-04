@@ -10,6 +10,9 @@
 
     const releaseNotes = {
         "0.0.27": `
+### New
+- [Dashboard] Perspective selection events can now update a Mosaic Selection via \`selectAs\` / \`selectColumns\` options on \`perspective()\`, enabling cross-filtering from grid row clicks
+
 ### No longer broken
 - [AI Chat] Extra data (e.g. thought signatures) from LLM responses is now passed back in subsequent requests
 `,

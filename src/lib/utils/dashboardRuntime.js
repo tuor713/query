@@ -3,7 +3,10 @@ import perspectiveClient from "@perspective-dev/client";
 import { DuckDBHandler } from "@perspective-dev/client/dist/esm/virtual_servers/duckdb.js";
 import "@perspective-dev/viewer";
 import "@perspective-dev/viewer-datagrid";
-import { PerspectiveMosaicClient } from "./perspectiveMosaicClient.js";
+import {
+  PerspectiveMosaicClient,
+  attachPerspectiveSelection,
+} from "./perspectiveMosaicClient.js";
 
 /**
  * Creates a `fetchFromTrino` function bound to the current session credentials.
@@ -111,7 +114,11 @@ export function createPerspectivePanel(dbConnector, coordinator) {
     return pspClientPromise;
   }
 
-  return async function perspective(tableName, config = {}, { filterBy } = {}) {
+  return async function perspective(
+    tableName,
+    config = {},
+    { filterBy, selectAs, selectColumns } = {},
+  ) {
     const client = await getPspClient();
 
     const viewer = document.createElement("perspective-viewer");
@@ -127,6 +134,11 @@ export function createPerspectivePanel(dbConnector, coordinator) {
     console.log("restored view");
     if (filterBy && coordinator) {
       coordinator.connect(new PerspectiveMosaicClient(viewer, filterBy));
+    }
+    if (selectAs && selectColumns?.length) {
+      console.log("Registering selection listener");
+      viewer.toggleAttribute("selectable", true);
+      attachPerspectiveSelection(viewer, selectAs, selectColumns);
     }
     return viewer;
   };

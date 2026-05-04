@@ -1,4 +1,4 @@
-import { MosaicClient } from "@uwdata/mosaic-core";
+import { MosaicClient, clausePoints } from "@uwdata/mosaic-core";
 
 // Map mosaic SQL operator strings to Perspective filter operators
 const OP_MAP = {
@@ -163,6 +163,37 @@ export function predicateToPerspectiveFilters(predicates) {
  * `createPerspectivePanel` wires this up automatically when `filterBy` is
  * passed.
  */
+/**
+ * Attach a `perspective-select` event listener that updates a Mosaic Selection
+ * whenever the user selects or deselects a row in the Perspective datagrid.
+ *
+ * The selection predicate is built from the specified columns of the clicked row
+ * using `clausePoints`, so other Mosaic clients observing the same Selection will
+ * filter accordingly.
+ *
+ * Usage (inside a dashboard snippet):
+ *
+ *   const sel = vg.Selection.intersect();
+ *   const chart = vg.plot(..., vg.from({ filterBy: sel }));
+ *   await perspective('my_table', {}, { selectAs: sel, selectColumns: ['state'] });
+ *
+ * @param {HTMLElement} viewer        The `<perspective-viewer>` DOM element.
+ * @param {import('@uwdata/mosaic-core').Selection} selection  The Selection to update.
+ * @param {string[]} columns          Column names to include in the predicate.
+ */
+export function attachPerspectiveSelection(viewer, selection, columns) {
+  viewer.addEventListener("perspective-select", (event) => {
+    const { selected, row } = event.detail ?? {};
+    console.log("[attachPerspectiveSelection] perspective-select", { selected, row, columns });
+    if (!selected || !row) {
+      selection.update(clausePoints(columns, null, { source: viewer }));
+      return;
+    }
+    const values = [columns.map((col) => row[col])];
+    selection.update(clausePoints(columns, values, { source: viewer }));
+  });
+}
+
 export class PerspectiveMosaicClient extends MosaicClient {
   /**
    * @param {HTMLElement} viewer   The `<perspective-viewer>` DOM element.
