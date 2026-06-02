@@ -9,6 +9,10 @@
     } = $props();
 
     const releaseNotes = {
+        "0.0.28": `
+### New
+- [Dashboard] YAML dashboard DSL — write dashboards declaratively with \`data:\` / \`layout:\` spec instead of JavaScript
+`,
         "0.0.27": `
 ### New
 - [Dashboard] Perspective selection events can now update a Mosaic Selection via \`selectAs\` / \`selectColumns\` options on \`perspective()\`, enabling cross-filtering from grid row clicks

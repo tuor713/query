@@ -9,6 +9,7 @@ import {
     createPerspectivePanel,
 } from "./dashboardRuntime.js";
 import { createGoldenBuilder } from "./goldenBuilder.js";
+import { runYamlDashboard } from "./dashboardYaml.js";
 
 /**
  * Manages the full lifecycle of a dashboard execution: Mosaic coordinator,
@@ -42,9 +43,10 @@ export class Dashboard {
      *   onQueryLog?: (log: any[]) => void,
      *   layoutState?: any,
      *   onLayoutStateChange?: (state: any) => void,
+     *   mode?: 'yaml' | 'javascript',
      * }} [opts]
      */
-    async mount(element, code, { onQueryLog, layoutState, onLayoutStateChange } = {}) {
+    async mount(element, code, { onQueryLog, layoutState, onLayoutStateChange, mode = 'javascript' } = {}) {
         this.#cleanup();
         element.innerHTML = "";
         this.#queryLog = [];
@@ -70,16 +72,21 @@ export class Dashboard {
         const perspective = createPerspectivePanel(this.#dbConnector, this.#coordinator);
         const golden = createGoldenBuilder(GoldenLayout);
 
-        // eslint-disable-next-line no-new-func
-        const fn = new Function(
-            "vg",
-            "container",
-            "loadTrino",
-            "perspective",
-            "golden",
-            `"use strict"; return (async () => { ${code} })();`,
-        );
-        const result = await fn(vg, element, loadTrino, perspective, golden);
+        let result;
+        if (mode === 'yaml') {
+            result = await runYamlDashboard(code, { vg, loadTrino, perspective, golden, container: element });
+        } else {
+            // eslint-disable-next-line no-new-func
+            const fn = new Function(
+                "vg",
+                "container",
+                "loadTrino",
+                "perspective",
+                "golden",
+                `"use strict"; return (async () => { ${code} })();`,
+            );
+            result = await fn(vg, element, loadTrino, perspective, golden);
+        }
 
         if (result && typeof result.saveLayout === "function") {
             this.#glInstance = result;

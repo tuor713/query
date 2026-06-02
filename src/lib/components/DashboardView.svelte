@@ -39,6 +39,7 @@
         const entry = {
             name,
             snippet: snippetCode,
+            mode: editorMode,
             folderId: existing?.folderId ?? null,
         };
         savedDashboards = savedDashboards
@@ -60,6 +61,7 @@
         clearDisplay();
         currentDashboardName = savedDashboard.name;
         snippetCode = savedDashboard.snippet;
+        editorMode = savedDashboard.mode ?? 'javascript';
     }
 
     function deleteDashboard(name) {
@@ -80,7 +82,38 @@
         storage.saveDashboards(savedDashboards);
     }
 
-    const DEFAULT_SNIPPET = `// Dashboard snippet — available globals:
+    const DEFAULT_YAML_SNIPPET = `# data: named Trino queries loaded into embedded DuckDB
+# params: named values or selections (reference as $name in mark encodings)
+# layout: row | col | panel  (panels contain plot or perspective)
+# plot marks: barY, barX, dot, line, area, rect, hexbin, hexgrid, ...
+# plot attributes (siblings of plot): xLabel, yLabel, grid, width, height, ...
+# aggregates in encodings: {count: } {sum: col} {avg: col} {min: col} {max: col}
+# param refs in encodings: {column: $myParam}
+
+data:
+  nodes:
+    trino: 'SELECT node_id, state, coordinator FROM system.runtime.nodes'
+
+layout:
+  type: row
+  items:
+    - type: panel
+      title: Nodes by State
+      plot:
+        - mark: barY
+          data: {from: nodes}
+          x: state
+          y: {count: }
+          fill: state
+      xLabel: State
+      yLabel: Count
+    - type: panel
+      title: Raw Data
+      perspective:
+        from: nodes
+`;
+
+    const DEFAULT_JS_SNIPPET = `// Dashboard snippet — available globals:
 // vg                    — vgplot: vg.plot([marks...]), vg.table({from}), vg.barY(), etc.
 // loadTrino(name, sql)  — fetch from Trino and load into an embedded DuckDB table "name"
 // perspective(name, config?, opts?) — Perspective viewer backed by the same DuckDB table (async)
@@ -117,7 +150,10 @@ return golden.layout(container,
 );
 `;
 
-    let snippetCode = $state(storage.getSnippet() ?? DEFAULT_SNIPPET);
+    let editorMode = $state(storage.getMode() ?? 'yaml');
+    $effect(() => storage.saveMode(editorMode));
+
+    let snippetCode = $state(storage.getSnippet() ?? DEFAULT_YAML_SNIPPET);
     let running = $state(false);
     let error = $state(null);
 
@@ -167,8 +203,8 @@ return golden.layout(container,
         dashboard?.updateRootSize();
     }
 
-    const editorOptions = {
-        language: "javascript",
+    const editorOptions = $derived({
+        language: editorMode === 'yaml' ? 'yaml' : 'javascript',
         theme: "vs",
         automaticLayout: true,
         minimap: { enabled: false },
@@ -176,7 +212,7 @@ return golden.layout(container,
         lineNumbers: "on",
         wordWrap: "off",
         fontSize: 13,
-    };
+    });
 
     async function run() {
         if (!containerEl) return;
@@ -195,6 +231,7 @@ return golden.layout(container,
                 onQueryLog: (log) => { queryLog = log; },
                 layoutState: storage.getLayoutState(),
                 onLayoutStateChange: (state) => storage.saveLayoutState(state),
+                mode: editorMode,
             });
         } catch (err) {
             console.error("Dashboard snippet error:", err);
@@ -225,6 +262,18 @@ return golden.layout(container,
             <Play size="1em" />
             {running ? "Running…" : "Run"}
         </button>
+        <div class="mode-toggle">
+            <button
+                class="mode-btn"
+                class:active={editorMode === 'yaml'}
+                onclick={() => (editorMode = 'yaml')}
+            >YAML</button>
+            <button
+                class="mode-btn"
+                class:active={editorMode === 'javascript'}
+                onclick={() => (editorMode = 'javascript')}
+            >JS</button>
+        </div>
         <span class="hint">Ctrl+Enter to run</span>
         {#if queryLog.length > 0 && !running}
             <button
@@ -258,7 +307,7 @@ return golden.layout(container,
             </button>
             <button
                 class="icon-btn"
-                onclick={() => { clearDisplay(); snippetCode = DEFAULT_SNIPPET; currentDashboardName = ""; }}
+                onclick={() => { clearDisplay(); editorMode = 'yaml'; snippetCode = DEFAULT_YAML_SNIPPET; currentDashboardName = ""; }}
                 title="New dashboard (reset to example)"
             >
                 <FilePlus2 size="1em" />
@@ -292,6 +341,7 @@ return golden.layout(container,
     <div class="body" bind:this={bodyEl}>
         {#if !editorCollapsed}
             <div class="editor-pane" style="width:{editorWidth}px">
+                {#key editorMode}
                 <Monaco
                     bind:value={snippetCode}
                     options={editorOptions}
@@ -302,6 +352,7 @@ return golden.layout(container,
                         }
                     }}
                 />
+                {/key}
             </div>
             <div class="splitter" onmousedown={onSplitterMousedown}></div>
         {/if}
@@ -392,6 +443,36 @@ return golden.layout(container,
     }
 
     .icon-btn:hover {
+        background: #e5e5e5;
+    }
+
+    .mode-toggle {
+        display: inline-flex;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    .mode-btn {
+        padding: 0.3rem 0.6rem;
+        background: #f5f5f5;
+        border: none;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #666;
+    }
+
+    .mode-btn + .mode-btn {
+        border-left: 1px solid #ccc;
+    }
+
+    .mode-btn.active {
+        background: #2563eb;
+        color: white;
+    }
+
+    .mode-btn:hover:not(.active) {
         background: #e5e5e5;
     }
 

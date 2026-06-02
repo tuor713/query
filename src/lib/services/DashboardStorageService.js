@@ -33,4 +33,12 @@ export class DashboardStorageService {
     const raw = localStorage.getItem("dashboardFolders");
     return raw ? JSON.parse(raw) : [];
   }
+
+  saveMode(mode) {
+    localStorage.setItem("dashboard_mode", mode);
+  }
+
+  getMode() {
+    return localStorage.getItem("dashboard_mode") || null;
+  }
 }
