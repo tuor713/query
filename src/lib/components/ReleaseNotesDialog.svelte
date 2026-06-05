@@ -12,6 +12,9 @@
         "0.0.28": `
 ### New
 - [Dashboard] YAML dashboard DSL — write dashboards declaratively with \`data:\` / \`layout:\` spec instead of JavaScript
+- [Dashboard] YAML: \`filterBy: $sel\` on perspective panels — cross-filter a Perspective grid from a Mosaic plot selection
+- [Dashboard] YAML: \`hconcat\` / \`vconcat\` / \`hspace\` / \`vspace\` layout types — use Mosaic flex layout inside panels or as top-level layout without GoldenLayout
+- [Dashboard] YAML: \`card\` element — metric card with label and scalar aggregation (\`{count: }\`, \`{sum: col}\`, etc.), reacts to \`filterBy\` selections
 `,
         "0.0.27": `
 ### New

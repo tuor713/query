@@ -5,6 +5,7 @@ import {
     ParamNode,
     SelectionNode,
 } from '@uwdata/mosaic-spec';
+import { MosaicClient } from '@uwdata/mosaic-core';
 
 /**
  * Parse and execute a YAML dashboard spec against the live runtime.
@@ -12,8 +13,21 @@ import {
  * The spec is an extended superset of the Mosaic declarative spec:
  *   - data:    { <name>: { trino: "SQL", limit?: number } }
  *   - params:  { <name>: <value> | { select: intersect|union|single|crossfilter } }
- *   - layout:  golden-layout tree (type: row|col|panel)
- *              panel content: plot (vgplot/Mosaic) or perspective
+ *   - layout:  golden-layout tree (type: row|col|panel) OR Mosaic layout tree
+ *              (type: hconcat|vconcat|hspace|vspace|card)
+ *
+ * Panel content types (keys inside a `panel` node):
+ *   - plot:        Mosaic/vgplot marks + attributes
+ *   - perspective: Perspective datagrid
+ *   - hconcat:     array of element specs laid out horizontally
+ *   - vconcat:     array of element specs laid out vertically
+ *
+ * Element spec types (type: field):
+ *   - card:    metric card — label + scalar aggregation query
+ *   - hconcat: horizontal flex container; children in `items:`
+ *   - vconcat: vertical flex container; children in `items:`
+ *   - hspace:  horizontal spacer; size in `value:` (px or CSS string)
+ *   - vspace:  vertical spacer; size in `value:`
  *
  * Plot specs follow the Mosaic format:
  *   - marks are items in the `plot` array
@@ -29,7 +43,7 @@ import {
  * upfront. parseSpec() for individual plot specs creates ParamRefNodes for $-refs;
  * those resolve against the pre-populated instCtx.activeParams at instantiation time.
  */
-export async function runYamlDashboard(yamlText, { loadTrino, perspective, golden, container }) {
+export async function runYamlDashboard(yamlText, { vg, loadTrino, perspective, golden, container }) {
     const spec = parse(yamlText);
     if (!spec || typeof spec !== 'object') throw new Error('Invalid YAML dashboard spec');
 
@@ -60,8 +74,18 @@ export async function runYamlDashboard(yamlText, { loadTrino, perspective, golde
     // on first use. Defaulting to 'intersect' matches Mosaic's own default for toggleX/Y.
     preScanSelections(layout, instCtx);
 
-    const root = await buildNode(layout, { perspective, golden, instCtx });
-    return golden.layout(container, root);
+    const runtime = { vg, perspective, golden, instCtx };
+
+    if (GOLDEN_TYPES.has(layout.type)) {
+        const root = await buildNode(layout, runtime);
+        return golden.layout(container, root);
+    } else {
+        // Pure Mosaic/flex layout — no GoldenLayout wrapper needed
+        const el = await buildElement(layout, runtime);
+        container.style.cssText = 'overflow: auto; width: 100%; height: 100%; box-sizing: border-box;';
+        container.appendChild(el);
+        return null;
+    }
 }
 
 /** Convert a params-section entry to a ParamNode or SelectionNode. */
@@ -94,9 +118,6 @@ function preScanSelections(layoutNode, instCtx) {
     }
 }
 
-// Keys that belong to the panel container, not to the plot spec
-const PANEL_META = new Set(['type', 'title', 'plot', 'perspective', 'items']);
-
 /**
  * Resolve a $-prefixed param reference to its live Param/Selection instance.
  * Returns the ref unchanged if it is not a string starting with "$".
@@ -108,36 +129,12 @@ function resolveRef(ref, instCtx) {
     return ref;
 }
 
-/**
- * Build panel content from a panel spec.
- *
- * For `plot:` panels: forward to mosaic-spec's parseSpec so that mark transforms
- * ({count:}, {sum: col}, {column: $x}, …) and plot attributes (xLabel, yLabel, …
- * as siblings of `plot`) are handled consistently with the Mosaic spec.
- *
- * For `perspective:` panels: supports `filterBy: $selName` which resolves the named
- * Selection from instCtx.activeParams (populated by earlier plot panels via `as: $selName`).
- */
-async function buildPanelContent(spec, { perspective, instCtx }) {
-    if (spec.plot) {
-        // Mosaic-compatible plot spec: marks in `plot`, attributes as siblings
-        const plotSpec = {
-            plot: spec.plot,
-            ...Object.fromEntries(Object.entries(spec).filter(([k]) => !PANEL_META.has(k))),
-        };
-        const ast = parseSpec(plotSpec);
-        return ast.root.instantiate(instCtx);
-    }
-    if (spec.perspective) {
-        const { from, filterBy: filterByRef, ...config } = spec.perspective;
-        const opts = {};
-        if (filterByRef != null) {
-            opts.filterBy = resolveRef(filterByRef, instCtx);
-        }
-        return await perspective(from, config, opts);
-    }
-    throw new Error(`Panel "${spec.title ?? '?'}" must have "plot" or "perspective" content`);
-}
+// ─── Golden layout node types ────────────────────────────────────────────────
+
+const GOLDEN_TYPES = new Set(['row', 'col', 'panel']);
+
+// Keys consumed by the golden panel container, not forwarded to content builders
+const PANEL_META = new Set(['type', 'title', 'plot', 'perspective', 'hconcat', 'vconcat', 'items']);
 
 async function buildNode(spec, runtime) {
     const { type, items, title } = spec;
@@ -158,5 +155,187 @@ async function buildNode(spec, runtime) {
         return runtime.golden.panel(title ?? '', el);
     }
 
-    throw new Error(`Unknown layout node type: "${type}"`);
+    throw new Error(`Unknown golden layout node type: "${type}". Use row/col/panel for GoldenLayout or hconcat/vconcat/card/hspace/vspace for flex layout.`);
+}
+
+/**
+ * Build the DOM element content of a golden `panel` node.
+ *
+ * Supported content keys:
+ *   plot:        Mosaic/vgplot marks + attributes
+ *   perspective: Perspective datagrid (supports filterBy: $sel)
+ *   hconcat:     array of element specs → horizontal flex
+ *   vconcat:     array of element specs → vertical flex
+ */
+async function buildPanelContent(spec, runtime) {
+    if (spec.plot) {
+        // Mosaic-compatible plot spec: marks in `plot`, attributes as siblings
+        const plotSpec = {
+            plot: spec.plot,
+            ...Object.fromEntries(Object.entries(spec).filter(([k]) => !PANEL_META.has(k))),
+        };
+        const ast = parseSpec(plotSpec);
+        return ast.root.instantiate(runtime.instCtx);
+    }
+    if (spec.perspective) {
+        const { from, filterBy: filterByRef, ...config } = spec.perspective;
+        const opts = {};
+        if (filterByRef != null) {
+            opts.filterBy = resolveRef(filterByRef, runtime.instCtx);
+        }
+        return await runtime.perspective(from, config, opts);
+    }
+    if (spec.hconcat != null) {
+        return buildElement({ type: 'hconcat', items: spec.hconcat }, runtime);
+    }
+    if (spec.vconcat != null) {
+        return buildElement({ type: 'vconcat', items: spec.vconcat }, runtime);
+    }
+    throw new Error(`Panel "${spec.title ?? '?'}" must have "plot", "perspective", "hconcat", or "vconcat" content`);
+}
+
+// ─── Mosaic / flex element types ─────────────────────────────────────────────
+
+/**
+ * Build a DOM element from a typed element spec.
+ *
+ * Recognized spec.type values:
+ *   hconcat  horizontal flex container; children in spec.items
+ *   vconcat  vertical flex container; children in spec.items
+ *   hspace   horizontal spacer (spec.value: px or CSS string)
+ *   vspace   vertical spacer
+ *   card     metric card (spec.label, spec.from, spec.value, spec.filterBy)
+ */
+async function buildElement(spec, runtime) {
+    const { vg } = runtime;
+
+    switch (spec.type) {
+        case 'hconcat': {
+            const children = [];
+            for (const item of (spec.items ?? [])) {
+                children.push(await buildElement(item, runtime));
+            }
+            return vg.hconcat(...children);
+        }
+        case 'vconcat': {
+            const children = [];
+            for (const item of (spec.items ?? [])) {
+                children.push(await buildElement(item, runtime));
+            }
+            return vg.vconcat(...children);
+        }
+        case 'hspace':
+            return vg.hspace(spec.value ?? spec.width ?? 10);
+        case 'vspace':
+            return vg.vspace(spec.value ?? spec.height ?? 10);
+        case 'card':
+            return buildCard(spec, runtime);
+        default:
+            // Fallback: treat as panel content (supports plot:/perspective: keys)
+            return buildPanelContent(spec, runtime);
+    }
+}
+
+// ─── Card component ───────────────────────────────────────────────────────────
+
+/**
+ * Convert a card `value:` spec to a SQL aggregation expression string.
+ *
+ * Supported forms:
+ *   "count(*)"      raw SQL string, used as-is
+ *   {count: }       → count(*)
+ *   {count: col}    → count(col)
+ *   {sum: col}      → sum(col)
+ *   {avg: col}      → avg(col)
+ *   {min: col}      → min(col)
+ *   {max: col}      → max(col)
+ */
+function transformToSql(spec) {
+    if (typeof spec === 'string') return spec;
+    if (!spec || typeof spec !== 'object') throw new Error(`Invalid card value spec: ${JSON.stringify(spec)}`);
+    const entries = Object.entries(spec);
+    if (!entries.length) throw new Error('Card value spec has no keys');
+    const [fn, col] = entries[0];
+    const arg = (col == null || col === '') ? '*' : col;
+    return `${fn}(${arg})`;
+}
+
+function formatCardValue(val) {
+    if (val == null) return '—';
+    const n = typeof val === 'bigint' ? Number(val) : val;
+    if (typeof n !== 'number' || Number.isNaN(n)) return String(val);
+    if (Number.isInteger(n)) return n.toLocaleString();
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+async function buildCard(spec, runtime) {
+    const { instCtx, vg } = runtime;
+    const { label, from: tableName, value: valueTrSpec, filterBy: filterByRef } = spec;
+
+    if (!tableName) throw new Error(`Card "${label ?? '?'}" missing "from" field`);
+    if (!valueTrSpec) throw new Error(`Card "${label ?? '?'}" missing "value" field`);
+
+    const sqlAgg = transformToSql(valueTrSpec);
+    const filterBy = filterByRef != null ? resolveRef(filterByRef, instCtx) : undefined;
+
+    const card = document.createElement('div');
+    Object.assign(card.style, {
+        padding: '16px 24px',
+        margin: '8px',
+        background: '#fff',
+        border: '1px solid #e0e0e0',
+        borderRadius: '8px',
+        minWidth: '140px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    });
+
+    const labelEl = document.createElement('div');
+    Object.assign(labelEl.style, {
+        fontSize: '11px',
+        fontWeight: '600',
+        color: '#888',
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+    });
+    labelEl.textContent = label ?? '';
+
+    const valueEl = document.createElement('div');
+    Object.assign(valueEl.style, {
+        fontSize: '28px',
+        fontWeight: '700',
+        color: '#111',
+        lineHeight: '1',
+    });
+    valueEl.textContent = '…';
+
+    card.appendChild(labelEl);
+    card.appendChild(valueEl);
+
+    vg.coordinator().connect(new CardMosaicClient(valueEl, tableName, sqlAgg, filterBy));
+
+    return card;
+}
+
+class CardMosaicClient extends MosaicClient {
+    constructor(valueEl, tableName, sqlAgg, filterBy) {
+        super(filterBy);
+        this._valueEl = valueEl;
+        this._tableName = tableName;
+        this._sqlAgg = sqlAgg;
+    }
+
+    query(filter) {
+        const where = filter ? ` WHERE ${filter}` : '';
+        return `SELECT ${this._sqlAgg} AS __value FROM memory.${this._tableName}${where}`;
+    }
+
+    queryResult(data) {
+        const rows = [...data];
+        const val = rows[0]?.__value;
+        this._valueEl.textContent = formatCardValue(val);
+        return this;
+    }
 }
