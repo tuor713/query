@@ -6,7 +6,7 @@ import "@perspective-dev/viewer-datagrid";
 import {
   PerspectiveMosaicClient,
   attachPerspectiveSelection,
-} from "./perspectiveMosaicClient.js";
+} from "../components/mosaic/index.js";
 
 /**
  * Creates a `fetchFromTrino` function bound to the current session credentials.

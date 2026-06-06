@@ -5,7 +5,7 @@ import {
     ParamNode,
     SelectionNode,
 } from '@uwdata/mosaic-spec';
-import { MosaicClient } from '@uwdata/mosaic-core';
+import { CardMosaicClient, transformToSql, formatCardValue } from '../components/mosaic/index.js';
 
 /**
  * Parse and execute a YAML dashboard spec against the live runtime.
@@ -238,36 +238,6 @@ async function buildElement(spec, runtime) {
 
 // ─── Card component ───────────────────────────────────────────────────────────
 
-/**
- * Convert a card `value:` spec to a SQL aggregation expression string.
- *
- * Supported forms:
- *   "count(*)"      raw SQL string, used as-is
- *   {count: }       → count(*)
- *   {count: col}    → count(col)
- *   {sum: col}      → sum(col)
- *   {avg: col}      → avg(col)
- *   {min: col}      → min(col)
- *   {max: col}      → max(col)
- */
-function transformToSql(spec) {
-    if (typeof spec === 'string') return spec;
-    if (!spec || typeof spec !== 'object') throw new Error(`Invalid card value spec: ${JSON.stringify(spec)}`);
-    const entries = Object.entries(spec);
-    if (!entries.length) throw new Error('Card value spec has no keys');
-    const [fn, col] = entries[0];
-    const arg = (col == null || col === '') ? '*' : col;
-    return `${fn}(${arg})`;
-}
-
-function formatCardValue(val) {
-    if (val == null) return '—';
-    const n = typeof val === 'bigint' ? Number(val) : val;
-    if (typeof n !== 'number' || Number.isNaN(n)) return String(val);
-    if (Number.isInteger(n)) return n.toLocaleString();
-    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
 async function buildCard(spec, runtime) {
     const { instCtx, vg } = runtime;
     const { label, from: tableName, value: valueTrSpec, filterBy: filterByRef } = spec;
@@ -317,25 +287,4 @@ async function buildCard(spec, runtime) {
     vg.coordinator().connect(new CardMosaicClient(valueEl, tableName, sqlAgg, filterBy));
 
     return card;
-}
-
-class CardMosaicClient extends MosaicClient {
-    constructor(valueEl, tableName, sqlAgg, filterBy) {
-        super(filterBy);
-        this._valueEl = valueEl;
-        this._tableName = tableName;
-        this._sqlAgg = sqlAgg;
-    }
-
-    query(filter) {
-        const where = filter ? ` WHERE ${filter}` : '';
-        return `SELECT ${this._sqlAgg} AS __value FROM memory.${this._tableName}${where}`;
-    }
-
-    queryResult(data) {
-        const rows = [...data];
-        const val = rows[0]?.__value;
-        this._valueEl.textContent = formatCardValue(val);
-        return this;
-    }
 }
