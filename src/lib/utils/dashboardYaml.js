@@ -83,6 +83,9 @@ export async function runYamlDashboard(yamlText, { vg, loadTrino, perspective, g
         // Pure Mosaic/flex layout — no GoldenLayout wrapper needed
         const el = await buildElement(layout, runtime);
         container.style.cssText = 'overflow: auto; width: 100%; height: 100%; box-sizing: border-box;';
+        // Make the root flex element fill the container so flex children can grow into it
+        el.style.width = '100%';
+        el.style.height = '100%';
         container.appendChild(el);
         return null;
     }
@@ -230,9 +233,18 @@ async function buildElement(spec, runtime) {
             return vg.vspace(spec.value ?? spec.height ?? 10);
         case 'card':
             return buildCard(spec, runtime);
-        default:
+        default: {
             // Fallback: treat as panel content (supports plot:/perspective: keys)
-            return buildPanelContent(spec, runtime);
+            const el = await buildPanelContent(spec, runtime);
+            // perspective-viewer is created with height:100% for GoldenLayout; in a flex
+            // column that has no fixed height it collapses. Switch to flex-grow instead.
+            if (el?.tagName?.toLowerCase() === 'perspective-viewer') {
+                el.style.height = '';
+                el.style.flex = '1 1 auto';
+                el.style.minHeight = '200px';
+            }
+            return el;
+        }
     }
 }
 
