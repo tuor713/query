@@ -18,5 +18,8 @@ export default defineConfig({
       include: [/node_modules/],
       transformMixedEsModules: true,
     },
+    rollupOptions: {
+      external: (id) => id.startsWith("vite-plugin-node-polyfills/shims/"),
+    },
   },
 });
