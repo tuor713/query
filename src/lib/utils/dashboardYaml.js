@@ -99,20 +99,29 @@ function makeParamNode(pSpec) {
 }
 
 /**
- * Walk the layout tree and pre-register any $-selections implicitly defined by
- * `as: $name` in plot interactor items (items that carry a `select:` field).
+ * Walk the layout tree and pre-register any $-selections or $-params implicitly
+ * defined by `as: $name` in plot interactor items or input widget panels.
  * Entries already present in instCtx.activeParams (from the explicit `params:` section)
  * are never overwritten.
  */
 function preScanSelections(layoutNode, instCtx) {
     if (!layoutNode || typeof layoutNode !== 'object') return;
-    if (layoutNode.type === 'panel' && Array.isArray(layoutNode.plot)) {
-        for (const item of layoutNode.plot) {
-            if (item?.select && typeof item.as === 'string' && item.as.startsWith('$')) {
-                const name = item.as.slice(1);
-                if (!instCtx.activeParams.has(name)) {
-                    instCtx.activeParams.set(name, new SelectionNode('intersect').instantiate(instCtx));
+    if (layoutNode.type === 'panel') {
+        if (Array.isArray(layoutNode.plot)) {
+            for (const item of layoutNode.plot) {
+                if (item?.select && typeof item.as === 'string' && item.as.startsWith('$')) {
+                    const name = item.as.slice(1);
+                    if (!instCtx.activeParams.has(name)) {
+                        instCtx.activeParams.set(name, new SelectionNode('intersect').instantiate(instCtx));
+                    }
                 }
+            }
+        }
+        // Input widgets: auto-create a Param for `as: $name` if not already defined
+        if (layoutNode.input && typeof layoutNode.as === 'string' && layoutNode.as.startsWith('$')) {
+            const name = layoutNode.as.slice(1);
+            if (!instCtx.activeParams.has(name)) {
+                instCtx.activeParams.set(name, new ParamNode(undefined).instantiate(instCtx));
             }
         }
     }
@@ -171,6 +180,9 @@ async function buildNode(spec, runtime) {
  *   vconcat:     array of element specs → vertical flex
  */
 async function buildPanelContent(spec, runtime) {
+    if (spec.input) {
+        return buildInputElement(spec, runtime);
+    }
     if (spec.plot) {
         // Mosaic-compatible plot spec: marks in `plot`, attributes as siblings
         const plotSpec = {
@@ -194,7 +206,45 @@ async function buildPanelContent(spec, runtime) {
     if (spec.vconcat != null) {
         return buildElement({ type: 'vconcat', items: spec.vconcat }, runtime);
     }
-    throw new Error(`Panel "${spec.title ?? '?'}" must have "plot", "perspective", "hconcat", or "vconcat" content`);
+    throw new Error(`Panel "${spec.title ?? '?'}" must have "input", "plot", "perspective", "hconcat", or "vconcat" content`);
+}
+
+/**
+ * Build a Mosaic input widget element from a panel spec with an `input:` key.
+ *
+ * Supported types: menu, slider, search
+ *
+ * Common options (all optional):
+ *   as:       $paramName — the Param/Selection to bind the widget output to
+ *   from:     table name — database table for dynamic options/range
+ *   column:   column name — used with `from` for dynamic data
+ *   label:    display label
+ *   value:    initial value
+ *   filterBy: $selName — selection to pre-filter the `from` table
+ *   field:    override column name used in selection clause predicates
+ *
+ * menu-specific:  options (static array of values or {value, label} objects)
+ * slider-specific: min, max, step, width, select ('point'|'interval')
+ */
+function buildInputElement(spec, runtime) {
+    const { vg, instCtx } = runtime;
+    const { input: inputType, as: asRef, from, column, label, value, options, field,
+            filterBy: filterByRef, min, max, step, width, select } = spec;
+
+    const as = asRef != null ? resolveRef(asRef, instCtx) : undefined;
+    const filterBy = filterByRef != null ? resolveRef(filterByRef, instCtx) : undefined;
+    const base = { as, from, column, label, value, filterBy, field };
+
+    switch (inputType) {
+        case 'menu':
+            return vg.menu({ ...base, options });
+        case 'slider':
+            return vg.slider({ ...base, min, max, step, width, select });
+        case 'search':
+            return vg.search({ ...base });
+        default:
+            throw new Error(`Unknown input type: "${inputType}". Use menu, slider, or search.`);
+    }
 }
 
 // ─── Mosaic / flex element types ─────────────────────────────────────────────
