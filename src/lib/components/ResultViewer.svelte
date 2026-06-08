@@ -3,7 +3,7 @@
     import perspective from "@perspective-dev/client";
     import "@perspective-dev/viewer";
     import "@perspective-dev/viewer-datagrid";
-    import "@perspective-dev/viewer-d3fc";
+    import "@perspective-dev/viewer-charts";
 
     let { perspectiveConfig, id, adaptiveHeight = false } = $props();
 

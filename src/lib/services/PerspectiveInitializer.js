@@ -1,7 +1,7 @@
 import perspective_viewer from "@perspective-dev/viewer";
 import perspective from "@perspective-dev/client";
 import "@perspective-dev/viewer-datagrid";
-import "@perspective-dev/viewer-d3fc";
+import "@perspective-dev/viewer-charts";
 
 import SERVER_WASM from "@perspective-dev/server/dist/wasm/perspective-server.wasm?url";
 import CLIENT_WASM from "@perspective-dev/viewer/dist/wasm/perspective-viewer.wasm?url";
