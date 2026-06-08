@@ -52,8 +52,12 @@ function translateNode(node) {
         );
         return [];
       }
-      // InOpNode.values is always an array of AST nodes (via isIn(..., arr.map(asNode)))
-      const vals = node.values
+      // In mosaic-sql >=0.26 InOpNode.values is a TupleNode wrapping the array;
+      // older versions passed a plain array directly.
+      const valueNodes = Array.isArray(node.values)
+        ? node.values
+        : node.values?.values ?? [];
+      const vals = valueNodes
         .map((v) => valueOf(v))
         .filter((v) => v !== undefined);
       if (!vals.length)
