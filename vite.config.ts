@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
-  plugins: [sveltekit(), nodePolyfills()],
+  plugins: [sveltekit(), nodePolyfills({ globals: { global: false } })],
   esbuild: {
     target: "es2022",
   },
@@ -17,9 +17,6 @@ export default defineConfig({
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
-    },
-    rollupOptions: {
-      external: (id) => id.startsWith("vite-plugin-node-polyfills/shims/"),
     },
   },
 });
