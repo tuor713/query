@@ -10,7 +10,9 @@ export async function initializePerspective() {
   console.log("Loading WASM");
   console.log("server wasm", SERVER_WASM);
   console.log("client wasm", CLIENT_WASM);
-  perspective.init_server(fetch(SERVER_WASM));
-  await perspective_viewer.init_client(fetch(CLIENT_WASM));
+  await Promise.all([
+    perspective.init_server(fetch(SERVER_WASM)),
+    perspective_viewer.init_client(fetch(CLIENT_WASM)),
+  ]);
   console.log("Done loading WASM");
 }
