@@ -5,6 +5,8 @@
     import { tableFromIPC } from "apache-arrow";
     import { Pencil } from "@lucide/svelte";
     import Monaco from "svelte-monaco";
+    import { onMount } from "svelte";
+    import { ensureMonacoSetup } from "$lib/utils/monacoSetup.js";
 
     let { initialSpec = null } = $props();
 
@@ -17,6 +19,12 @@ height: 600`,
     );
 
     let expanded = $state(initialSpec == null);
+    let monacoReady = $state(false);
+
+    onMount(async () => {
+        await ensureMonacoSetup();
+        monacoReady = true;
+    });
 
     // Monaco editor options for YAML
     const editorOptions = {
@@ -113,7 +121,9 @@ height: 600`;
         <div id="mosaic-spec-editor">
             <h4>Mosaic Spec</h4>
             <div id="mosaic-monaco-editor">
-                <Monaco bind:value={spec} options={editorOptions} />
+                {#if monacoReady}
+                    <Monaco bind:value={spec} options={editorOptions} />
+                {/if}
             </div>
             <div>
                 <button onclick={() => reloadLayout()}>Apply</button>

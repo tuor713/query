@@ -1,6 +1,7 @@
 <script>
-    import { onDestroy } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import Monaco from "svelte-monaco";
+    import { ensureMonacoSetup } from "$lib/utils/monacoSetup.js";
     import {
         Play,
         AlertCircle,
@@ -243,6 +244,12 @@ return golden.layout(container,
     }
 
     onDestroy(() => dashboard?.destroy());
+
+    let monacoReady = $state(false);
+    onMount(async () => {
+        await ensureMonacoSetup();
+        monacoReady = true;
+    });
 </script>
 
 <div class="dashboard-root">
@@ -341,6 +348,7 @@ return golden.layout(container,
     <div class="body" bind:this={bodyEl}>
         {#if !editorCollapsed}
             <div class="editor-pane" style="width:{editorWidth}px">
+                {#if monacoReady}
                 {#key editorMode}
                 <Monaco
                     bind:value={snippetCode}
@@ -353,6 +361,7 @@ return golden.layout(container,
                     }}
                 />
                 {/key}
+                {/if}
             </div>
             <div class="splitter" onmousedown={onSplitterMousedown}></div>
         {/if}

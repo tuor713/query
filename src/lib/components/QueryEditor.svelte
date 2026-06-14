@@ -1,6 +1,8 @@
 <script>
     import Monaco from "svelte-monaco";
+    import { onMount } from "svelte";
     import { monarch } from "@malloydata/syntax-highlight/grammars/malloy/malloy.monarch";
+    import { ensureMonacoSetup } from "$lib/utils/monacoSetup.js";
 
     let {
         query = $bindable(""),
@@ -11,14 +13,14 @@
 
     let monaco = $state.raw(null);
     let editor = $state.raw(null);
+    let monacoReady = $state(false);
 
-    import loader from "@monaco-editor/loader";
-    loader.init().then(async (monacoInstance) => {
-        monaco = monacoInstance;
+    onMount(async () => {
+        const monacoModule = await ensureMonacoSetup();
+        monaco = monacoModule;
         monaco.languages.register({ id: "malloy" });
         monaco.languages.setMonarchTokensProvider("malloy", monarch);
-
-
+        monacoReady = true;
     });
 
     function handleEditorMount() {
@@ -66,13 +68,15 @@
 </script>
 
 <div id="sqleditor">
-    <Monaco
-        bind:value={query}
-        {options}
-        bind:editor
-        height="100%"
-        on:ready={handleEditorMount}
-    />
+    {#if monacoReady}
+        <Monaco
+            bind:value={query}
+            {options}
+            bind:editor
+            height="100%"
+            on:ready={handleEditorMount}
+        />
+    {/if}
 </div>
 
 <style>
