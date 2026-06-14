@@ -9,6 +9,10 @@
     } = $props();
 
     const releaseNotes = {
+        "0.0.29": `
+### No longer broken
+- [Grid] Charting works properly again on main query grid
+        `,
         "0.0.28": `
 ### New
 - [Dashboard] YAML dashboard DSL — write dashboards declaratively with \`data:\` / \`layout:\` spec instead of JavaScript
