@@ -46,7 +46,7 @@
     console.log("Initializing SaneQL");
     saneql.default(SANEQL_WASM);
 
-    const VERSION = "0.0.29";
+    const VERSION = "0.0.30";
 
     let backendUrl = window.location.origin;
     if (import.meta.env.DEV) {

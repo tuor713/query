@@ -9,6 +9,10 @@
     } = $props();
 
     const releaseNotes = {
+        "0.0.30": `
+### Improved
+- [Malloy] Update to 0.415
+        `,
         "0.0.29": `
 ### No longer broken
 - [Grid] Charting works properly again on main query grid
