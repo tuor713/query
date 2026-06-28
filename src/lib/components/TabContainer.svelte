@@ -9,10 +9,12 @@
     } = $props();
 
     function addTab() {
-        const newId = Math.max(...tabs.map((t) => t.id), 0) + 1;
+        const taken = new Set(tabs.map((t) => t.id));
+        let newId = 1;
+        while (taken.has(newId)) newId++;
         const newTab = {
             id: newId,
-            name: `Query ${newId}`,
+            name: `Q${newId}`,
             query: "",
             queryName: "",
             selection: "",
