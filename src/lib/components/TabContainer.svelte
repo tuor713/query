@@ -53,6 +53,81 @@
         );
     }
 
+    let draggedTabId = $state(null);
+    let dragOverTabId = $state(null);
+
+    function handleDragStart(e, tabId) {
+        // Let text selection/dragging inside the name input work as before.
+        if (e.target.tagName === "INPUT") {
+            e.preventDefault();
+            return;
+        }
+        draggedTabId = tabId;
+        e.dataTransfer.effectAllowed = "move";
+    }
+
+    function handleDragOver(e, tabId) {
+        if (draggedTabId === null || draggedTabId === tabId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "move";
+        dragOverTabId = tabId;
+    }
+
+    function handleDragLeave(tabId) {
+        if (dragOverTabId === tabId) dragOverTabId = null;
+    }
+
+    function handleDrop(e, targetTabId) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (draggedTabId === null || draggedTabId === targetTabId) {
+            draggedTabId = null;
+            dragOverTabId = null;
+            return;
+        }
+        const fromIndex = tabs.findIndex((t) => t.id === draggedTabId);
+        const toIndex = tabs.findIndex((t) => t.id === targetTabId);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const reordered = [...tabs];
+        const [moved] = reordered.splice(fromIndex, 1);
+        reordered.splice(toIndex, 0, moved);
+        tabs = reordered;
+
+        draggedTabId = null;
+        dragOverTabId = null;
+    }
+
+    function handleDragEnd() {
+        draggedTabId = null;
+        dragOverTabId = null;
+    }
+
+    // Fallback for dropping past the last tab (over the add button, gap, or
+    // bar background) — per-tab handlers stop propagation so this only runs
+    // when the drop didn't land on a tab.
+    function handleBarDragOver(e) {
+        if (draggedTabId === null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    }
+
+    function handleBarDrop(e) {
+        e.preventDefault();
+        if (draggedTabId === null) return;
+        const fromIndex = tabs.findIndex((t) => t.id === draggedTabId);
+        if (fromIndex === -1) return;
+
+        const reordered = [...tabs];
+        const [moved] = reordered.splice(fromIndex, 1);
+        reordered.push(moved);
+        tabs = reordered;
+
+        draggedTabId = null;
+        dragOverTabId = null;
+    }
+
     // Initialize with one tab if empty
     if (tabs.length === 0) {
         addTab();
@@ -61,11 +136,21 @@
 
 <div class="tab-container">
     {#if !editorCollapsed}
-        <div class="tab-bar">
+        <div
+            class="tab-bar"
+            ondragover={handleBarDragOver}
+            ondrop={handleBarDrop}
+        >
             {#each tabs as tab (tab.id)}
                 <div
-                    class="tab {activeTabId === tab.id ? 'active' : ''}"
+                    class="tab {activeTabId === tab.id ? 'active' : ''} {dragOverTabId === tab.id ? 'drag-over' : ''} {draggedTabId === tab.id ? 'dragging' : ''}"
+                    draggable="true"
                     onclick={() => (activeTabId = tab.id)}
+                    ondragstart={(e) => handleDragStart(e, tab.id)}
+                    ondragover={(e) => handleDragOver(e, tab.id)}
+                    ondragleave={() => handleDragLeave(tab.id)}
+                    ondrop={(e) => handleDrop(e, tab.id)}
+                    ondragend={handleDragEnd}
                 >
                     <input
                         type="text"
@@ -133,6 +218,14 @@
         border-bottom: 1px solid white;
         position: relative;
         z-index: 1;
+    }
+
+    .tab.dragging {
+        opacity: 0.5;
+    }
+
+    .tab.drag-over {
+        border-left: 2px solid #4a90d9;
     }
 
     .tab-name-input {
