@@ -13,6 +13,7 @@
 ### Improved
 - [Malloy] Update to 0.415
 - [Tabs] New tabs reuse the lowest available ID instead of incrementing monotonically
+- Share schema cache between Malloy and SaneQL
         `,
         "0.0.29": `
 ### No longer broken

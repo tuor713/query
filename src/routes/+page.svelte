@@ -12,6 +12,8 @@
         // Config
         getDefaultEnvironment,
         runMalloyQuery,
+        schemaCache,
+        getSchemaCacheKey,
 
         // Components
         LoginComponent,
@@ -364,8 +366,6 @@
         }
     }
 
-    const describeCache = new Map();
-
     async function getSchema(
         table,
         username,
@@ -373,13 +373,21 @@
         environment,
         extraCredentials,
     ) {
-        const key = `${environment}:${table}`;
-        if (describeCache.has(key)) {
-            return describeCache.get(key);
+        const describeSql = "DESCRIBE " + table;
+        const key = getSchemaCacheKey(describeSql, username, environment);
+
+        const cachedColumns = schemaCache.get(key);
+        if (cachedColumns) {
+            return {
+                rows: cachedColumns.map((c) => ({
+                    Column: c.name,
+                    Type: c.type,
+                })),
+            };
         }
 
         let result = await queryService.executeQuery(
-            "DESCRIBE " + table,
+            describeSql,
             100,
             username,
             password,
@@ -388,7 +396,12 @@
             extraCredentials,
         );
 
-        describeCache.set(key, result);
+        if (result.rows) {
+            schemaCache.set(
+                key,
+                result.rows.map((r) => ({ name: r["Column"], type: r["Type"] })),
+            );
+        }
 
         return result;
     }

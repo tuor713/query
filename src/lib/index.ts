@@ -19,6 +19,10 @@ export { QueryService } from "./services/QueryService.js";
 export { StorageService } from "./services/StorageService.js";
 export { AIService } from "./services/AIService.js";
 export { runMalloyQuery } from "./services/MalloyService.js";
+export {
+  schemaCache,
+  getSchemaCacheKey,
+} from "./services/SchemaCacheService.js";
 
 // Config
 export {

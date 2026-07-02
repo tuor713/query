@@ -9,51 +9,34 @@ import type { BaseRunner } from "@malloydata/db-trino";
 import { TrinoPrestoConnection } from "@malloydata/db-trino";
 import { QueryService } from "./QueryService.js";
 import { nanoid } from "nanoid";
+import {
+  schemaCache,
+  isDescribeQuery,
+  getSchemaCacheKey,
+  type SchemaColumn,
+} from "./SchemaCacheService.js";
 
-// Cache for DESCRIBE queries
-const describeCache = new Map<
-  string,
-  {
-    result: any;
-    timestamp: number;
-    ttl: number;
-  }
->();
-
-const DESCRIBE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
-
-function isDescribeQuery(sql: string): boolean {
-  const trimmedSql = sql.trim().toUpperCase();
-  return trimmedSql.startsWith("DESCRIBE");
+// Malloy's structDefFromSchema only ever reads row[0] (name) and row[4]/row[1]
+// (type) from a DESCRIBE result, so that's all that needs to round-trip through
+// the shared cache. See @malloydata/db-trino trino_connection.js.
+function toSchemaColumns(rows: unknown[][]): SchemaColumn[] {
+  return rows.map((row) => ({
+    name: row[0] as string,
+    type: (row[4] && typeof row[4] === "string" ? row[4] : row[1]) as string,
+  }));
 }
 
-function getCacheKey(
-  sql: string,
-  username: string,
-  environment: string,
-): string {
-  return `${environment}:${username}:${sql.trim().toUpperCase()}`;
-}
-
-function getCachedResult(cacheKey: string): any | null {
-  const cached = describeCache.get(cacheKey);
-  if (!cached) return null;
-
-  const now = Date.now();
-  if (now - cached.timestamp > cached.ttl) {
-    describeCache.delete(cacheKey);
-    return null;
-  }
-
-  return cached.result;
-}
-
-function setCachedResult(cacheKey: string, result: any): void {
-  describeCache.set(cacheKey, {
-    result,
-    timestamp: Date.now(),
-    ttl: DESCRIBE_CACHE_TTL,
-  });
+function fromSchemaColumns(columns: SchemaColumn[]): {
+  rows: unknown[][];
+  columns: { name: string; type: string }[];
+} {
+  return {
+    rows: columns.map((c) => [c.name, c.type]),
+    columns: [
+      { name: "Column", type: "varchar" },
+      { name: "Type", type: "varchar" },
+    ],
+  };
 }
 
 // Utility functions for URL reading
@@ -218,13 +201,13 @@ class RemoteTrinoRunner implements BaseRunner {
 
     // Check if this is a DESCRIBE query and if we have a cached result
     if (isDescribeQuery(sql)) {
-      const cacheKey = getCacheKey(sql, this.username, this.environment);
-      const cachedResult = getCachedResult(cacheKey);
-      if (cachedResult) {
+      const cacheKey = getSchemaCacheKey(sql, this.username, this.environment);
+      const cachedColumns = schemaCache.get(cacheKey);
+      if (cachedColumns) {
         console.log(
           "RemoteTrinoRunner.runSQL - using cached result for DESCRIBE query",
         );
-        return cachedResult;
+        return fromSchemaColumns(cachedColumns);
       }
     }
 
@@ -276,8 +259,8 @@ class RemoteTrinoRunner implements BaseRunner {
 
     // Cache DESCRIBE query results
     if (isDescribeQuery(sql)) {
-      const cacheKey = getCacheKey(sql, this.username, this.environment);
-      setCachedResult(cacheKey, finalResult);
+      const cacheKey = getSchemaCacheKey(sql, this.username, this.environment);
+      schemaCache.set(cacheKey, toSchemaColumns(finalResult.rows));
     }
 
     return finalResult;
